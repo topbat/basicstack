@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 基石服务栈 BasicStack · 引擎徽章（自托管矢量版） -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 156 20" width="156" height="20" role="img" aria-label="engine: Docker Compose">
+  <rect width="156" height="20" rx="3" fill="#1E6FE8"/>
+  <rect width="52" height="20" rx="3" fill="#2A3B55"/>
+  <rect width="52" height="20" rx="3" fill="#FFFFFF" fill-opacity="0.06"/>
+  <path d="M52 0 h5 v20 h-5 z" fill="#FFFFFF" fill-opacity="0.08"/>
+  <text x="26" y="14" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#EAF0F7">engine</text>
+  <text x="105" y="14" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">Docker Compose</text>
+</svg>
