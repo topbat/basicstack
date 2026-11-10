@@ -1,0 +1,7 @@
+# Milvus 内置 etcd 配置（standalone 单机模式专用）
+# 数据目录由环境变量 ETCD_DATA_DIR=/var/lib/milvus/etcd 指定并持久化到数据盘
+listen-client-urls: http://0.0.0.0:2379
+advertise-client-urls: http://0.0.0.0:2379
+quota-backend-bytes: 4294967296
+auto-compaction-mode: revision
+auto-compaction-retention: '1000'
