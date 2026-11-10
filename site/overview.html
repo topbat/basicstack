@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="基石服务栈 BasicStack 服务总览：25 件自托管开发基建的版本、端口、账号、管理台、数据目录与常用命令。">
+<title>基石服务栈 · 服务总览</title>
+<style>
+:root{
+  --bg:#0b1220;
+  --panel:#121a2e;
+  --panel-2:#0e1526;
+  --border:rgba(148,163,184,.14);
+  --border-strong:rgba(148,163,184,.28);
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --dim:#64748b;
+  --acc:#22d3ee;
+  --ok:#34d399;
+  --warn:#fbbf24;
+  --bad:#f87171;
+  --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;
+  font-size:14px;
+  line-height:1.6;
+  background-image:
+    radial-gradient(1100px 520px at 82% -8%, rgba(34,211,238,.07), transparent 62%),
+    radial-gradient(900px 480px at -8% 6%, rgba(30,111,232,.10), transparent 60%);
+}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono)}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px}
+
+/* ---------- 页头 ---------- */
+header.top{
+  position:sticky;top:0;z-index:50;
+  background:rgba(11,18,32,.88);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+}
+.top-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 20px;max-width:1280px;margin:0 auto;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand svg.logo{width:42px;height:42px;flex:none;filter:drop-shadow(0 2px 10px rgba(30,111,232,.45))}
+.brand h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.brand .sub{margin:0;font-size:12px;color:var(--muted);white-space:nowrap}
+.ver{
+  display:inline-block;vertical-align:2px;margin-left:8px;padding:1px 8px;border-radius:999px;
+  font-size:11px;font-weight:600;letter-spacing:.5px;
+  color:var(--acc);border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
+}
+.stats{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.stat{
+  min-width:86px;padding:6px 14px;border:1px solid var(--border);border-radius:10px;
+  background:var(--panel);text-align:center;
+}
+.stat b{display:block;font-size:17px;font-weight:700;line-height:1.3;color:var(--text);font-variant-numeric:tabular-nums}
+.stat b .tot{color:var(--dim);font-size:13px;font-weight:500}
+.stat span{display:block;font-size:11px;color:var(--muted)}
+.stat.g b{color:var(--ok)}
+.stat.c b{color:var(--acc)}
+.stat.link{display:flex;align-items:center;border-color:rgba(34,211,238,.35)}
+.stat.link a{font-size:12.5px;font-weight:600;white-space:nowrap}
+
+/* ---------- 工具栏 ---------- */
+main.wrap{padding:20px 20px 40px}
+.toolbar{
+  background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  padding:14px 16px;margin-bottom:16px;
+}
+.tb-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.tb-row:last-child{margin-bottom:0}
+#q{
+  flex:1;min-width:220px;padding:8px 12px;border-radius:9px;
+  background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+  font-size:13.5px;outline:none;transition:border-color .15s;
+}
+#q:focus{border-color:rgba(34,211,238,.55)}
+#q::placeholder{color:var(--dim)}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;
+  border:1px solid var(--border-strong);background:transparent;color:var(--text);
+  font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:border-color .15s,background .15s,color .15s;
+}
+.btn:hover{border-color:var(--acc);color:var(--acc)}
+.btn.primary{background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.5);color:var(--acc)}
+.btn.primary:hover{background:rgba(34,211,238,.2)}
+.btn.primary:disabled{opacity:.55;cursor:wait}
+.btn.small{padding:3px 9px;font-size:11.5px;font-weight:500;border-radius:7px;color:var(--muted)}
+.btn.small:hover{color:var(--acc);border-color:rgba(34,211,238,.5)}
+.btn.small.copied{color:var(--ok);border-color:rgba(52,211,153,.5)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(34,211,238,.3);border-top-color:var(--acc);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.chips{gap:8px}
+.chip{
+  padding:4px 12px;border-radius:999px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:12.5px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.chip:hover{color:var(--text);border-color:var(--border-strong)}
+.chip.on{color:#06121a;background:var(--acc);border-color:var(--acc);font-weight:600}
+.chip .n{opacity:.75;font-size:11px;margin-left:3px}
+
+.quick{
+  border-top:1px dashed var(--border);padding-top:10px;
+}
+.quick .qt{font-size:12px;color:var(--muted);font-weight:600;margin-right:2px;flex:none}
+.qcmd{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2)}
+.qcmd .lb{font-size:11.5px;color:var(--muted);flex:none}
+.qcmd code{font-size:12px;color:var(--acc);max-width:430px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.statusline{font-size:12px;color:var(--muted);border-top:1px dashed var(--border);padding-top:9px}
+.statusline .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dim);margin-right:6px;vertical-align:1px}
+.statusline.loaded .dot{background:var(--ok)}
+.statusline.error .dot{background:var(--warn)}
+.statusline em{font-style:normal;color:var(--text)}
+
+/* ---------- 信息卡 ---------- */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;margin-bottom:18px}
+.icard{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:13px 15px;
+  transition:border-color .15s;
+}
+.icard:hover{border-color:var(--border-strong)}
+.icard h3{margin:0 0 6px;font-size:13.5px;font-weight:700;color:var(--acc);display:flex;align-items:center;gap:7px}
+.icard h3 svg{width:14px;height:14px;flex:none;stroke:var(--acc)}
+.icard p{margin:0;font-size:12.5px;color:var(--muted)}
+.icard p b{color:var(--text);font-weight:600}
+.icard code{font-size:11.5px;color:var(--text);background:var(--panel-2);padding:1px 5px;border-radius:5px;border:1px solid var(--border)}
+.icard .more{margin-top:6px}
+
+/* ---------- 服务网格 ---------- */
+.sec-title{display:flex;align-items:baseline;gap:10px;margin:6px 2px 12px}
+.sec-title h2{margin:0;font-size:15px;font-weight:700}
+.sec-title span{font-size:12px;color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:14px}
+.empty{
+  border:1px dashed var(--border-strong);border-radius:12px;padding:34px;text-align:center;
+  color:var(--muted);font-size:13px;
+}
+
+.svc{
+  background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:9px;
+  transition:border-color .15s,transform .15s,box-shadow .15s;
+}
+.svc:hover{border-color:rgba(34,211,238,.4);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.svc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.svc-name{font-size:15px;font-weight:700;line-height:1.35}
+.svc-name .key{display:block;font-size:11px;color:var(--dim);font-family:var(--mono);font-weight:400}
+.svc-ver{font-size:12px;color:var(--acc);font-family:var(--mono)}
+.svc-img{font-size:11px;color:var(--dim);font-family:var(--mono);word-break:break-all}
+.st{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  padding:2px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid;
+  white-space:nowrap;
+}
+.st::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.st.ok{color:var(--ok);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+.st.bad{color:var(--bad);border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.08)}
+.st.warn{color:var(--warn);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08)}
+.st.off{color:var(--muted);border-color:var(--border-strong);background:rgba(148,163,184,.07)}
+.st.unk{color:var(--dim);border:1px dashed var(--border-strong);background:transparent}
+.st.unk::before{display:none}
+.st.done{color:var(--acc);border-color:rgba(34,211,238,.35);background:rgba(34,211,238,.07)}
+
+.badges{display:flex;flex-wrap:wrap;gap:5px}
+.bdg{
+  font-size:11px;padding:1.5px 8px;border-radius:6px;border:1px solid var(--border);
+  color:var(--muted);background:var(--panel-2);white-space:nowrap;
+}
+.bdg.cat{color:var(--acc);border-color:rgba(34,211,238,.3);background:rgba(34,211,238,.06)}
+.bdg.net{color:var(--muted)}
+.bdg.port{font-family:var(--mono);color:var(--text)}
+.bdg.port i{font-style:normal;color:var(--dim)}
+.bdg.oshot{color:var(--warn);border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.06)}
+
+.kv{display:flex;gap:8px;font-size:12px;align-items:baseline}
+.kv .lab{flex:none;width:44px;color:var(--dim);font-size:11px;text-align:justify;text-align-last:justify}
+.kv .val{color:var(--text);word-break:break-all}
+.kv .val code{font-size:11.5px;color:var(--muted)}
+.kv .val a{font-family:var(--mono);font-size:11.5px}
+.svc-note{font-size:11.5px;color:var(--muted);background:var(--panel-2);border-left:2px solid rgba(34,211,238,.45);padding:5px 9px;border-radius:0 7px 7px 0}
+
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.go{
+  display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;
+  font-size:12.5px;font-weight:700;text-decoration:none;cursor:pointer;border:1px solid;
+  transition:filter .15s;
+}
+.go:hover{text-decoration:none;filter:brightness(1.15)}
+.go.main{color:#06121a;background:var(--acc);border-color:var(--acc)}
+.go.sub{color:var(--acc);background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.4)}
+
+.cmds{border-top:1px dashed var(--border);padding-top:9px;display:flex;flex-direction:column;gap:5px}
+.cmds .ct{font-size:11px;color:var(--dim);font-weight:700;letter-spacing:1px;margin-bottom:1px}
+.cmd-row{display:flex;align-items:center;gap:7px;min-width:0}
+.cmd-row .cl{flex:none;width:52px;font-size:11px;color:var(--muted)}
+.cmd-row code{
+  flex:1;min-width:0;font-size:11.5px;color:var(--text);
+  background:var(--panel-2);border:1px solid var(--border);border-radius:6px;
+  padding:4px 8px;overflow-x:auto;white-space:nowrap;scrollbar-width:thin;
+}
+.cmd-row code::-webkit-scrollbar{height:4px}
+.cmd-row code::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:2px}
+
+/* ---------- 页脚 ---------- */
+footer.foot{border-top:1px solid var(--border);margin-top:8px;background:rgba(14,21,38,.6)}
+.foot-inner{
+  max-width:1280px;margin:0 auto;padding:16px 20px;display:flex;gap:8px 22px;flex-wrap:wrap;
+  align-items:center;font-size:12px;color:var(--muted);justify-content:space-between;
+}
+.foot-inner b{color:var(--text)}
+.foot-inner .sep{color:var(--dim)}
+
+@media (max-width:720px){
+  .brand h1{font-size:15px}
+  .stat{min-width:70px;padding:4px 10px}
+  .grid{grid-template-columns:1fr}
+  .kv .lab{width:38px}
+}
+</style>
+</head>
+<body>
+
+<!-- ======================= 页头 ======================= -->
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <!-- 内联标志：取自 assets/brand/logo-mark.svg（原创矢量图形） -->
+      <svg class="logo" viewBox="0 0 96 96" width="42" height="42" role="img" aria-label="BasicStack 标志">
+        <defs>
+          <radialGradient id="bsGlow" cx="50%" cy="38%" r="75%">
+            <stop offset="0%" stop-color="#1E6FE8" stop-opacity="0.28"/>
+            <stop offset="60%" stop-color="#1E6FE8" stop-opacity="0.06"/>
+            <stop offset="100%" stop-color="#1E6FE8" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="96" height="96" rx="22" fill="#0B1626"/>
+        <rect x="0" y="0" width="96" height="96" rx="22" fill="url(#bsGlow)"/>
+        <rect x="0.75" y="0.75" width="94.5" height="94.5" rx="21.25" fill="none" stroke="#22334F" stroke-width="1.5"/>
+        <path d="M35 27 H61 L57 39 H39 Z" fill="#F5A93C" stroke="#F5A93C" stroke-width="2.4" stroke-linejoin="round"/>
+        <rect x="31" y="43" width="34" height="12" rx="3" fill="#1E6FE8"/>
+        <rect x="25" y="59" width="46" height="12" rx="3" fill="#7EB3F7"/>
+      </svg>
+      <div>
+        <h1>基石服务栈 · 服务总览<span class="ver">v1.0.0</span></h1>
+        <p class="sub">BasicStack — 25 件自托管开发基建 · 版本 / 端口 / 账号 / 管理台 / 数据目录速查</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat g"><b id="stRun">–<span class="tot">/25</span></b><span>运行中</span></div>
+      <div class="stat c"><b id="stHealth">–</b><span>健康</span></div>
+      <div class="stat"><b>6</b><span>管理台</span></div>
+      <div class="stat link"><a href="publish.html" title="前往发布页">发布页 →</a></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ======================= 工具栏 ======================= -->
+  <section class="toolbar">
+    <div class="tb-row">
+      <input id="q" type="search" autocomplete="off" spellcheck="false"
+             placeholder="搜索：名称 / 容器名 / 端口 / 版本 / 关键词（如 23306、admin123、8.4）">
+      <button id="btnRefresh" class="btn primary" type="button">刷新实时状态</button>
+    </div>
+    <div class="tb-row chips" id="chips" role="tablist" aria-label="按分类筛选"></div>
+    <div class="tb-row quick" id="quick">
+      <span class="qt">全栈快捷命令</span>
+    </div>
+    <div class="statusline" id="statusLine"><span class="dot"></span>实时状态：尚未加载<span class="genAt"></span></div>
+  </section>
+
+  <!-- ======================= 全局信息卡 ======================= -->
+  <section class="info-grid" aria-label="全局信息">
+    <div class="icard">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-9 9h18M12 3c2.5 2.6 3.9 5.7 3.9 9s-1.4 6.4-3.9 9c-2.5-2.6-3.9-5.7-3.9-9S9.5 5.6 12 3Z"/></svg>统一网络</h3>
+      <p>全部 25 个服务接入自定义网络 <code>basic-net</code>，容器之间一律用<b>服务名</b>互访。业务容器需先接入才能直连：<code>docker network connect basic-net &lt;业务容器名&gt;</code>。</p>
+    </div>
+    <div class="icard">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>统一密码</h3>
+      <p>所有设置了密码的组件，初始密码统一为 <code>admin123</code>。仅限本机 / 局域网使用，请勿将端口暴露到公网。</p>
+    </div>
+    <div class="icard">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>数据全落盘</h3>
+      <p>数据 / 日志统一落在 <code>D:\local\basic-service-data</code> 对应子目录，备份 = 先停服再复制目录。例外：<b>ClickHouse / GitLab</b> 因 Windows 目录挂载不兼容，数据存 Docker 卷 <code>basic-service_clickhouse_* / basic-service_gitlab_*</code>。</p>
+    </div>
+    <div class="icard">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 6 3 12l5 6M16 6l5 6-5 6"/></svg>跨项目互通</h3>
+      <p>中间件额外接入外部项目网络，对方容器用<b>容器名</b>即可直连：<br><b>esg</b>（<code>esg-uat_esg</code>）：11 个中间件全接入；<br><b>qdata</b>（<code>docker_qdatanet</code>）：除 mysql / redis / rabbitmq / neo4j 外 7 个接入——这四个在对方网络存在同名别名，接入会造成 DNS 解析错乱。</p>
+    </div>
+    <div class="icard">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg>端口已避让</h3>
+      <p>常用端口已避开本机占用：MySQL <b>23306</b>、Redis <b>26379</b>、PostgreSQL <b>15432</b>、RabbitMQ <b>25672/25673</b>、Neo4j <b>17474/17687</b> 等。统一用 <code>127.0.0.1</code> 访问（本机 <code>::1</code> 部分端口被其他进程占用）。</p>
+    </div>
+    <div class="icard">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 3h7v7M21 3l-9 9M10 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-4"/></svg>发布页</h3>
+      <p>站点发布 / 同步说明见发布页：<a href="publish.html"><code>publish.html</code></a>。总览页与发布页经 nginx 同源发布于 <code>http://127.0.0.1/</code>（先运行 <code>scripts\sync-site.bat</code> 同步）。</p>
+    </div>
+  </section>
+
+  <!-- ======================= 服务卡片网格 ======================= -->
+  <div class="sec-title">
+    <h2>服务清单</h2>
+    <span id="countHint">共 25 个服务</span>
+  </div>
+  <section id="grid" class="grid" aria-label="服务卡片"></section>
+  <div id="empty" class="empty" hidden>没有匹配的服务——换个关键词，或点「全部」分类重试。</div>
+
+</main>
+
+<!-- ======================= 页脚 ======================= -->
+<footer class="foot">
+  <div class="foot-inner">
+    <span><b>BasicStack v1.0.0</b><span class="sep"> · </span>2026-11-10</span>
+    <span>仅本机 / 局域网使用<span class="sep"> · </span>统一初始密码 <code>admin123</code>，请勿暴露公网</span>
+    <a href="publish.html">发布页 publish.html →</a>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+/* =========================================================
+ * 服务数据（与 docker-compose.yml / README §1 逐条核对，共 25 项）
+ * ========================================================= */
+var CATS = ['全部','数据库','缓存·消息','注册配置','存储','搜索','AI·可观测','DevOps','管理端'];
+
+var SERVICES = [
+  /* ---------- 数据库 ---------- */
+  { k:'mysql', zh:'MySQL 关系数据库', cat:'数据库', ver:'MySQL 8.4 LTS（8.4.11）', img:'mysql:8.4',
+    net:'basic-net · esg',
+    ports:[['23306','3306','MySQL 服务端口']],
+    acct:'root / admin123 · 业务账号 nacos / admin123',
+    data:'D:\\local\\basic-service-data\\mysql',
+    cmds:[
+      ['重启','docker compose restart mysql'],
+      ['日志','docker compose logs -f --tail=200 mysql'],
+      ['连接','docker exec -it mysql mysql -uroot -padmin123'],
+      ['备份','docker exec mysql mysqldump -uroot -padmin123 --all-databases > D:\\local\\basic-service-data\\backup-mysql.sql']
+    ]},
+  { k:'postgres', zh:'PostgreSQL 关系数据库', cat:'数据库', ver:'PostgreSQL 18 + pgvector（18.6）', img:'pgvector/pgvector:pg18',
+    net:'basic-net · esg · qdata',
+    ports:[['15432','5432','PG 端口']],
+    acct:'postgres / admin123',
+    data:'D:\\local\\basic-service-data\\postgres\\18\\docker',
+    note:'PG18 起挂载父目录，实际数据在 postgres\\18\\docker 子目录；内置库 langfuse（供 Langfuse 使用）',
+    cmds:[
+      ['重启','docker compose restart postgres'],
+      ['日志','docker compose logs -f --tail=200 postgres'],
+      ['连接','docker exec -it postgres psql -U postgres -d langfuse'],
+      ['备份','docker exec postgres pg_dumpall -U postgres > D:\\local\\basic-service-data\\backup-pg.sql']
+    ]},
+  { k:'clickhouse', zh:'ClickHouse 列式 OLAP', cat:'数据库', ver:'ClickHouse 26.8（26.8.4）', img:'clickhouse/clickhouse-server:26.8',
+    net:'basic-net · esg · qdata',
+    ports:[['8123','8123','HTTP 接口'],['9090','9000','Native TCP（宿主机 9090 避让 MinIO）']],
+    acct:'admin / admin123',
+    data:'Docker 卷 basic-service_clickhouse_data / _logs',
+    note:'Windows 目录挂载不兼容（rename 报错），数据存 Docker 卷；内置 Play UI：127.0.0.1:8123/play',
+    console:{ url:'http://127.0.0.1:8123/play', label:'Play UI :8123/play' },
+    cmds:[
+      ['重启','docker compose restart clickhouse'],
+      ['日志','docker compose logs -f --tail=200 clickhouse'],
+      ['连接','docker exec -it clickhouse clickhouse-client --user admin --password admin123'],
+      ['备份','docker run --rm -v basic-service_clickhouse_data:/data -v D:\\local\\basic-service-data:/backup alpine tar czf /backup/backup-clickhouse.tar.gz -C /data .']
+    ]},
+  { k:'milvus', zh:'Milvus 向量数据库', cat:'数据库', ver:'Milvus 2.6.23', img:'milvusdb/milvus:v2.6.23',
+    net:'basic-net · esg · qdata',
+    ports:[['19530','19530','gRPC SDK'],['9091','9091','HTTP 健康 / 指标']],
+    acct:'默认未开启认证',
+    data:'D:\\local\\basic-service-data\\milvus',
+    note:'内置 etcd + 本地存储（RocksMQ）独立运行，无需外部 etcd / MinIO；SDK 连 127.0.0.1:19530',
+    console:{ url:'http://127.0.0.1:8086', label:'Attu :8086' },
+    cmds:[
+      ['重启','docker compose restart milvus'],
+      ['日志','docker compose logs -f --tail=200 milvus'],
+      ['健康','curl -f http://127.0.0.1:9091/healthz'],
+      ['备份','停服后复制 D:\\local\\basic-service-data\\milvus']
+    ]},
+  { k:'neo4j', zh:'Neo4j 图数据库', cat:'数据库', ver:'Neo4j 2026.08.1 Community', img:'neo4j:2026.08.1-community',
+    net:'basic-net · esg',
+    ports:[['17474','7474','HTTP Browser'],['17687','7687','Bolt 协议']],
+    acct:'neo4j / admin123',
+    data:'D:\\local\\basic-service-data\\neo4j\\data · neo4j\\logs',
+    note:'程序连接 bolt://127.0.0.1:17687（宿主机 7474/7687 被另一项目占用，故映射 17xxx）',
+    console:{ url:'http://127.0.0.1:17474', label:'Browser :17474' },
+    cmds:[
+      ['重启','docker compose restart neo4j'],
+      ['日志','docker compose logs -f --tail=200 neo4j'],
+      ['连接','docker exec -it neo4j cypher-shell -u neo4j -p admin123'],
+      ['备份','停服后复制 D:\\local\\basic-service-data\\neo4j']
+    ]},
+
+  /* ---------- 缓存·消息 ---------- */
+  { k:'redis', zh:'Redis 缓存 / KV', cat:'缓存·消息', ver:'Redis 8.8（8.8.2）', img:'redis:8.8-alpine',
+    net:'basic-net · esg',
+    ports:[['26379','6379','Redis 端口']],
+    acct:'密码 admin123（langfuse 使用 1 号库）',
+    data:'D:\\local\\basic-service-data\\redis',
+    note:'AOF 持久化已开启；管理端 RedisInsight :5540',
+    cmds:[
+      ['重启','docker compose restart redis'],
+      ['日志','docker compose logs -f --tail=200 redis'],
+      ['连接','docker exec -it redis redis-cli -a admin123'],
+      ['备份','停服后复制 D:\\local\\basic-service-data\\redis']
+    ]},
+  { k:'rabbitmq', zh:'RabbitMQ 消息队列', cat:'缓存·消息', ver:'RabbitMQ 4.3（4.3.5）', img:'rabbitmq:4.3-management',
+    net:'basic-net · esg',
+    ports:[['25672','5672','AMQP'],['25673','15672','管理 UI']],
+    acct:'admin / admin123',
+    data:'D:\\local\\basic-service-data\\rabbitmq',
+    note:'AMQP 连接串 amqp://admin:admin123@127.0.0.1:25672/（容器网络内 rabbitmq:5672）',
+    console:{ url:'http://127.0.0.1:25673', label:'管理 UI :25673' },
+    cmds:[
+      ['重启','docker compose restart rabbitmq'],
+      ['日志','docker compose logs -f --tail=200 rabbitmq'],
+      ['队列','docker exec rabbitmq rabbitmqctl list_queues'],
+      ['备份','停服后复制 D:\\local\\basic-service-data\\rabbitmq（队列持久化）']
+    ]},
+
+  /* ---------- 注册配置 ---------- */
+  { k:'nacos', zh:'Nacos 注册 / 配置中心', cat:'注册配置', ver:'Nacos 2.5.4', img:'nacos/nacos-server:v2.5.4',
+    net:'basic-net · esg · qdata',
+    ports:[['8848','8848','控制台 / OpenAPI'],['9848','9848','gRPC 客户端（SDK 必须放行）'],['9849','9849','gRPC 服务端']],
+    acct:'控制台 / SDK：nacos / admin123（已开启鉴权）',
+    data:'D:\\local\\basic-service-data\\nacos\\logs',
+    note:'元数据存放在本栈 MySQL（库 nacos）；gRPC 端口规则 = 8848+1000/1001',
+    console:{ url:'http://127.0.0.1:8848/nacos', label:'控制台 :8848/nacos' },
+    cmds:[
+      ['重启','docker compose restart nacos'],
+      ['日志','docker compose logs -f --tail=200 nacos'],
+      ['健康','docker inspect nacos --format "{{.State.Health.Status}}"'],
+      ['备份','元数据随 mysql 备份；日志目录 nacos\\logs 可直接复制']
+    ]},
+
+  /* ---------- 存储 ---------- */
+  { k:'minio', zh:'MinIO S3 对象存储', cat:'存储', ver:'MinIO latest', img:'minio/minio:latest',
+    net:'basic-net · esg · qdata',
+    ports:[['9000','9000','S3 API'],['9001','9001','Web 控制台']],
+    acct:'admin / admin123',
+    data:'D:\\local\\basic-service-data\\minio',
+    note:'Langfuse / Milvus 等业务使用，容器间 http://minio:9000；langfuse 桶由 minio-init 预创建',
+    console:{ url:'http://127.0.0.1:9001', label:'控制台 :9001' },
+    cmds:[
+      ['重启','docker compose restart minio'],
+      ['日志','docker compose logs -f --tail=200 minio'],
+      ['健康','curl -f http://127.0.0.1:9000/minio/health/live'],
+      ['备份','停服后复制 D:\\local\\basic-service-data\\minio（含 langfuse 桶）']
+    ]},
+  { k:'rustfs', zh:'RustFS S3 兼容存储（备选）', cat:'存储', ver:'RustFS latest', img:'rustfs/rustfs:latest',
+    net:'basic-net · esg · qdata',
+    ports:[['9020','9000','S3 API']],
+    acct:'AccessKey admin / SecretKey admin123',
+    data:'D:\\local\\basic-service-data\\rustfs',
+    note:'当前镜像版本未内置可用 Web 控制台，管理请用 mc / aws-cli',
+    cmds:[
+      ['重启','docker compose restart rustfs'],
+      ['日志','docker compose logs -f --tail=200 rustfs'],
+      ['连接','mc alias set rustfs http://127.0.0.1:9020 admin admin123'],
+      ['备份','停服后复制 D:\\local\\basic-service-data\\rustfs']
+    ]},
+  { k:'minio-init', zh:'MinIO 初始化（一次性任务）', cat:'存储', ver:'MinIO MC latest', img:'minio/mc:latest',
+    net:'basic-net', oneshot:true,
+    ports:null,
+    acct:'—',
+    data:'无（仅为 langfuse 预创建 MinIO 桶）',
+    note:'一次性任务：执行完自动退出，Exited(0) 属正常现象',
+    cmds:[
+      ['重跑','docker compose up --force-recreate minio-init'],
+      ['验证','docker logs minio-init']
+    ]},
+
+  /* ---------- 搜索 ---------- */
+  { k:'es', zh:'Elasticsearch 搜索引擎', cat:'搜索', ver:'Elasticsearch 9.2.3', img:'docker.elastic.co/elasticsearch/elasticsearch:9.2.3',
+    net:'basic-net · esg · qdata',
+    ports:[['9200','9200','REST API'],['9300','9300','节点通信']],
+    acct:'elastic / admin123',
+    data:'D:\\local\\basic-service-data\\es\\data · es\\logs',
+    note:'单节点 + 安全认证已开启（本地环境关闭 HTTPS）；JVM 堆 512MB',
+    console:{ url:'http://127.0.0.1:5601', label:'Kibana :5601' },
+    cmds:[
+      ['重启','docker compose restart es'],
+      ['日志','docker compose logs -f --tail=200 es'],
+      ['健康','curl -u elastic:admin123 http://127.0.0.1:9200/_cluster/health'],
+      ['备份','停服后复制 D:\\local\\basic-service-data\\es 整个目录']
+    ]},
+  { k:'es-init', zh:'ES 初始化（一次性任务）', cat:'搜索', ver:'curl latest', img:'curlimages/curl:latest',
+    net:'basic-net', oneshot:true,
+    ports:null,
+    acct:'—',
+    data:'无（为 Kibana 创建 kibana_server 服务账号）',
+    note:'一次性任务：ES9 禁止 Kibana 用 elastic 超级用户，本任务创建 kibana_server（密码 admin123）后退出',
+    cmds:[
+      ['重跑','docker compose up --force-recreate es-init'],
+      ['验证','docker logs es-init']
+    ]},
+
+  /* ---------- AI·可观测 ---------- */
+  { k:'langfuse-web', zh:'Langfuse Web（LLM 可观测）', cat:'AI·可观测', ver:'Langfuse 4', img:'docker.langfuse.com/langfuse/langfuse:4',
+    net:'basic-net',
+    ports:[['3000','3000','Web 控制台']],
+    acct:'admin@basic.local / admin123',
+    data:'无本地目录（复用本栈 postgres / clickhouse / redis / minio）',
+    note:'尽最大可能复用本栈中间件，不为单件服务多起容器',
+    console:{ url:'http://127.0.0.1:3000', label:'控制台 :3000' },
+    cmds:[
+      ['重启','docker compose restart langfuse-web'],
+      ['日志','docker compose logs -f --tail=200 langfuse-web'],
+      ['备份','数据在 postgres / clickhouse / minio（langfuse 桶），随各组件备份']
+    ]},
+  { k:'langfuse-worker', zh:'Langfuse Worker（异步任务）', cat:'AI·可观测', ver:'Langfuse Worker 4', img:'docker.langfuse.com/langfuse/langfuse-worker:4',
+    net:'basic-net',
+    ports:null,
+    portsText:'不对外暴露（容器内 3030）',
+    acct:'—（与 web 共用环境变量）',
+    data:'无本地目录（与 web 共用存储）',
+    cmds:[
+      ['重启','docker compose restart langfuse-worker'],
+      ['日志','docker compose logs -f --tail=200 langfuse-worker']
+    ]},
+  { k:'mineru', zh:'MinerU 文档解析 API（CPU 版）', cat:'AI·可观测', ver:'MinerU 3.4.5（本地构建）', img:'mineru-local:3.4.5',
+    net:'basic-net',
+    ports:[['8900','8000','API 端口']],
+    acct:'无（本地 API 免登录）',
+    data:'D:\\local\\basic-service-data\\mineru\\models（模型缓存约 1.1GB）',
+    note:'官方无 Hub 镜像，由 mineru\\Dockerfile 本地构建；模型走 ModelScope 国内源，首次解析较慢属正常',
+    console:{ url:'http://127.0.0.1:8900/docs', label:'Swagger /docs' },
+    cmds:[
+      ['重启','docker compose restart mineru'],
+      ['日志','docker compose logs -f --tail=200 mineru'],
+      ['构建','docker compose build mineru'],
+      ['解析','curl -X POST http://127.0.0.1:8900/file_parse -F "files=@demo.pdf" -F "backend=pipeline" -F "output_format=markdown"']
+    ]},
+
+  /* ---------- DevOps ---------- */
+  { k:'nginx', zh:'Nginx Web 入口 / 反向代理', cat:'DevOps', ver:'Nginx stable（1.31.x）', img:'nginx:stable-alpine',
+    net:'basic-net',
+    ports:[['80','80','Web 端口']],
+    acct:'无（公开访问）',
+    data:'D:\\local\\basic-service-data\\nginx\\html · nginx\\logs',
+    note:'站点配置 basic-service\\nginx\\conf.d\\default.conf（含反代示例）；本页即由 nginx 发布于 http://127.0.0.1/overview.html',
+    console:{ url:'http://127.0.0.1/', label:'站点入口 :80' },
+    cmds:[
+      ['重启','docker compose restart nginx'],
+      ['重载','docker exec nginx nginx -s reload'],
+      ['健康','curl -f http://127.0.0.1/healthz'],
+      ['备份','静态站点直接复制 D:\\local\\basic-service-data\\nginx\\html']
+    ]},
+  { k:'jenkins', zh:'Jenkins（CI/CD）', cat:'DevOps', ver:'Jenkins LTS', img:'jenkins/jenkins:lts',
+    net:'basic-net',
+    ports:[['8180','8080','Web UI'],['50000','50000','Agent / JNLP']],
+    acct:'首次用初始密码解锁，之后自建管理员',
+    data:'D:\\local\\basic-service-data\\jenkins（配置 / 任务 / 插件）',
+    note:'初始密码查询：docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword（仅首次存在）',
+    console:{ url:'http://127.0.0.1:8180', label:'控制台 :8180' },
+    cmds:[
+      ['重启','docker compose restart jenkins'],
+      ['日志','docker compose logs -f --tail=200 jenkins'],
+      ['密码','docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword'],
+      ['备份','停服后复制 D:\\local\\basic-service-data\\jenkins']
+    ]},
+  { k:'gitlab', zh:'GitLab CE（代码仓库）', cat:'DevOps', ver:'GitLab CE 19.3.2', img:'gitlab/gitlab-ce:19.3.2-ce.0',
+    net:'basic-net',
+    ports:[['8181','8181','Web 端口'],['2222','22','SSH 克隆']],
+    acct:'root / admin123（首次启动约 5-10 分钟，期间 502 属正常）',
+    data:'Docker 卷 basic-service_gitlab_config / _data / _logs',
+    note:'Windows 目录挂载不兼容，数据存 Docker 卷；SSH 克隆 git clone ssh://git@127.0.0.1:2222/...',
+    console:{ url:'http://127.0.0.1:8181', label:'控制台 :8181' },
+    cmds:[
+      ['重启','docker compose restart gitlab'],
+      ['日志','docker compose logs -f --tail=200 gitlab'],
+      ['备份','docker exec gitlab gitlab-backup create（备份在卷内 /var/opt/gitlab/backups）'],
+      ['改密','docker exec gitlab gitlab-rails runner "u=User.find_by(username:\'root\'); u.update_columns(encrypted_password: Devise::Encryptor.digest(User, \'admin123\'), password_automatically_set: false); puts u.reload.valid_password?(\'admin123\')"']
+    ]},
+
+  /* ---------- 管理端 ---------- */
+  { k:'phpmyadmin', zh:'phpMyAdmin（MySQL 管理端）', cat:'管理端', ver:'phpMyAdmin latest', img:'phpmyadmin:latest',
+    net:'basic-net', admin:true,
+    ports:[['8081','80','Web UI']],
+    acct:'root / admin123（服务器已自动指向 mysql）',
+    data:'无状态（SQL 导入上限 512M）',
+    console:{ url:'http://127.0.0.1:8081', label:'打开管理台' },
+    cmds:[
+      ['重启','docker compose restart phpmyadmin'],
+      ['日志','docker compose logs -f --tail=200 phpmyadmin']
+    ]},
+  { k:'redisinsight', zh:'RedisInsight（Redis 官方管理端）', cat:'管理端', ver:'RedisInsight latest', img:'redis/redisinsight:latest',
+    net:'basic-net', admin:true,
+    ports:[['5540','5540','Web UI']],
+    acct:'免登录（已自动注册本栈 redis，密码 admin123）',
+    data:'无状态',
+    console:{ url:'http://127.0.0.1:5540', label:'打开管理台' },
+    cmds:[
+      ['重启','docker compose restart redisinsight'],
+      ['日志','docker compose logs -f --tail=200 redisinsight']
+    ]},
+  { k:'pgadmin', zh:'pgAdmin 4（PostgreSQL 管理端）', cat:'管理端', ver:'pgAdmin 4 latest', img:'dpage/pgadmin4:latest',
+    net:'basic-net', admin:true,
+    ports:[['8082','80','Web UI']],
+    acct:'admin@basic-service.com / admin123（已自动注册 postgres 连接）',
+    data:'无状态（连接注册在 pgadmin\\servers.json）',
+    console:{ url:'http://127.0.0.1:8082', label:'打开管理台' },
+    cmds:[
+      ['重启','docker compose restart pgadmin'],
+      ['日志','docker compose logs -f --tail=200 pgadmin']
+    ]},
+  { k:'kibana', zh:'Kibana（Elasticsearch 官方管理端）', cat:'管理端', ver:'Kibana 9.2.3（中文界面）', img:'docker.elastic.co/kibana/kibana:9.2.3',
+    net:'basic-net', admin:true,
+    ports:[['5601','5601','Web UI']],
+    acct:'elastic / admin123（首次启动约需 2-5 分钟）',
+    data:'无状态',
+    note:'服务账号 kibana_server 由 es-init 自动创建（ES9 禁用 elastic 超级用户登录 Kibana）',
+    console:{ url:'http://127.0.0.1:5601', label:'打开管理台' },
+    cmds:[
+      ['重启','docker compose restart kibana'],
+      ['日志','docker compose logs -f --tail=200 kibana']
+    ]},
+  { k:'attu', zh:'Attu（Milvus 官方管理端）', cat:'管理端', ver:'Attu v3.0', img:'zilliz/attu:v3.0',
+    net:'basic-net', admin:true,
+    ports:[['8086','3000','Web UI']],
+    acct:'免登录（ATTU_AUTH_MODE=none，连接已预填 milvus:19530）',
+    data:'无状态',
+    console:{ url:'http://127.0.0.1:8086', label:'打开管理台' },
+    cmds:[
+      ['重启','docker compose restart attu'],
+      ['日志','docker compose logs -f --tail=200 attu']
+    ]},
+  { k:'dbgate', zh:'DBGate（ClickHouse 等 Web 数据库客户端）', cat:'管理端', ver:'DBGate 7.2.6', img:'dbgate/dbgate:7.2.6-alpine',
+    net:'basic-net', admin:true,
+    ports:[['8085','3000','Web UI']],
+    acct:'admin / admin123（已预置 ClickHouse 连接）',
+    data:'无状态',
+    console:{ url:'http://127.0.0.1:8085', label:'打开管理台' },
+    cmds:[
+      ['重启','docker compose restart dbgate'],
+      ['日志','docker compose logs -f --tail=200 dbgate']
+    ]}
+];
+
+/* 全栈快捷命令（工具栏） */
+var QUICK = [
+  ['启动全部','docker compose up -d'],
+  ['停止（保数据）','docker compose stop'],
+  ['状态一览','docker compose ps -a'],
+  ['跟踪日志','docker compose logs -f --tail=200 <服务名>'],
+  ['备份提示','先 docker compose stop 对应服务，再复制 D:\\local\\basic-service-data 下对应子目录（ClickHouse / GitLab 数据在 Docker 卷，见 README §6）']
+];
+
+/* =========================================================
+ * 工具函数
+ * ========================================================= */
+function esc(s){
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* 复制：安全上下文优先 navigator.clipboard，file:// 或失败时回退 execCommand */
+function legacyCopy(text){
+  try{
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly','');
+    ta.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0';
+    document.body.appendChild(ta);
+    var sel = document.getSelection();
+    var saved = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    ta.select();
+    var done = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (saved && sel){ sel.removeAllRanges(); sel.addRange(saved); }
+    return done;
+  }catch(e){ return false; }
+}
+function copyText(text, btn){
+  function mark(cls, tip, orig){
+    if(!btn) return;
+    btn.classList.add(cls);
+    btn.textContent = tip;
+    setTimeout(function(){ btn.classList.remove(cls); btn.textContent = orig; }, 1200);
+  }
+  var orig = btn ? btn.textContent : '';
+  if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext !== false){
+    navigator.clipboard.writeText(text).then(
+      function(){ mark('copied','已复制',orig); },
+      function(){ mark(legacyCopy(text)?'copied':'fail', legacyCopy(text)?'已复制':'复制失败',orig); }
+    );
+  } else {
+    var okd = legacyCopy(text);
+    mark(okd?'copied':'fail', okd?'已复制':'复制失败', orig);
+  }
+}
+
+/* =========================================================
+ * 渲染：分类 chips / 快捷命令 / 服务卡片
+ * ========================================================= */
+var curCat = '全部';
+var curQ = '';
+var viewList = [];
+var statusMap = {};   /* name -> {state,health,ports} */
+var statusMeta = null;/* {generatedAt, ok} */
+
+function renderChips(){
+  var box = document.getElementById('chips');
+  var html = CATS.map(function(c){
+    var n = c === '全部' ? SERVICES.length : SERVICES.filter(function(s){ return s.cat === c; }).length;
+    return '<button type="button" class="chip'+(c===curCat?' on':'')+'" data-cat="'+esc(c)+'">'
+      + esc(c) + '<span class="n">'+n+'</span></button>';
+  }).join('');
+  box.innerHTML = html;
+  Array.prototype.forEach.call(box.querySelectorAll('.chip'), function(b){
+    b.addEventListener('click', function(){
+      curCat = b.getAttribute('data-cat');
+      renderChips(); renderGrid();
+    });
+  });
+}
+
+function renderQuick(){
+  var box = document.getElementById('quick');
+  QUICK.forEach(function(item){
+    var row = document.createElement('span');
+    row.className = 'qcmd';
+    var lb = document.createElement('span'); lb.className='lb'; lb.textContent = item[0];
+    var code = document.createElement('code'); code.textContent = item[1]; code.title = item[1];
+    var btn = document.createElement('button'); btn.type='button'; btn.className='btn small'; btn.textContent='复制';
+    btn.addEventListener('click', function(){ copyText(item[1], btn); });
+    row.appendChild(lb); row.appendChild(code); row.appendChild(btn);
+    box.appendChild(row);
+  });
+}
+
+function badgeStatus(s){
+  var st = statusMap[s.k];
+  if (!st){
+    return { cls:'unk', label:'未检测', title:'未检测——运行 scripts\\overview-status.bat 生成 overview-status.json 后刷新' };
+  }
+  var state = String(st.state || '').toLowerCase();
+  var health = String(st.health || '').toLowerCase();
+  if (state === 'running'){
+    if (health === 'healthy')   return { cls:'ok',   label:'运行中 · 健康' };
+    if (health === 'unhealthy') return { cls:'bad',  label:'运行中 · 不健康', title:'健康检查未通过，可点卡片内「日志」排查' };
+    if (health === 'starting')  return { cls:'warn', label:'运行中 · 启动中' };
+    return { cls:'ok', label:'运行中' };
+  }
+  if (state === 'restarting') return { cls:'warn', label:'重启中' };
+  if (state === 'paused')     return { cls:'warn', label:'已暂停' };
+  if (state === 'exited' || state === 'dead' || state === 'stopped' || state === 'created'){
+    if (s.oneshot) return { cls:'done', label:'一次性 · 已执行', title:'一次性任务退出属正常（Exited(0)）' };
+    return { cls:'off', label:'已停止', title:'docker compose start '+s.k+' 可重新启动' };
+  }
+  return { cls:'off', label: esc(st.state || '未知') };
+}
+
+function renderGrid(){
+  var grid = document.getElementById('grid');
+  var q = curQ.trim().toLowerCase();
+  viewList = SERVICES.filter(function(s){
+    if (curCat !== '全部' && s.cat !== curCat) return false;
+    if (!q) return true;
+    var hay = [
+      s.k, s.zh, s.cat, s.ver, s.img, s.acct, s.data, s.net,
+      s.note || '', s.portsText || '',
+      (s.ports||[]).map(function(p){ return p[0]+' '+p[1]+' '+p[2]; }).join(' '),
+      (s.console ? s.console.url + ' ' + s.console.label : ''),
+      (s.cmds||[]).map(function(c){ return c[0]+' '+c[1]; }).join(' ')
+    ].join(' ').toLowerCase();
+    return hay.indexOf(q) !== -1;
+  });
+
+  var html = viewList.map(function(s, i){
+    var st = badgeStatus(s);
+    var portsHtml;
+    if (s.ports && s.ports.length){
+      portsHtml = s.ports.map(function(p){
+        var t = p[2] ? ' title="'+esc(p[2])+'"' : '';
+        return '<span class="bdg port"'+t+'>'+esc(p[0])+' <i>→</i> '+esc(p[1])+'</span>';
+      }).join('');
+    } else {
+      portsHtml = '<span class="bdg port">'+esc(s.portsText || '不占用宿主机端口')+'</span>';
+    }
+    var consoleHtml = '';
+    if (s.console){
+      consoleHtml = s.admin
+        ? '<a class="go main" href="'+esc(s.console.url)+'" target="_blank" rel="noopener">'+esc(s.console.label)+' ↗</a>'
+        : '<a class="go sub" href="'+esc(s.console.url)+'" target="_blank" rel="noopener">'+esc(s.console.label)+' ↗</a>';
+    }
+    var noteHtml = s.note ? '<div class="svc-note">'+esc(s.note)+'</div>' : '';
+    var cmdsHtml = (s.cmds||[]).map(function(c, ci){
+      return '<div class="cmd-row"><span class="cl">'+esc(c[0])+'</span>'
+        + '<code>'+esc(c[1])+'</code>'
+        + '<button type="button" class="btn small" data-i="'+i+'" data-c="'+ci+'">复制</button></div>';
+    }).join('');
+    var oshotHtml = s.oneshot ? '<span class="bdg oshot">一次性任务</span>' : '';
+
+    return '<article class="svc" data-key="'+esc(s.k)+'">'
+      + '<div class="svc-head"><div><div class="svc-name">'+esc(s.zh)
+      + ' <span class="key">'+esc(s.k)+'</span></div></div>'
+      + '<span class="st '+st.cls+'"'+(st.title?' title="'+esc(st.title)+'"':'')+'>'+st.label+'</span></div>'
+      + '<div class="svc-ver">'+esc(s.ver)+'<div class="svc-img">'+esc(s.img)+'</div></div>'
+      + '<div class="badges"><span class="bdg cat">'+esc(s.cat)+'</span>'+oshotHtml
+      + '<span class="bdg net" title="容器接入的网络">'+esc(s.net)+'</span>'+portsHtml+'</div>'
+      + '<div class="kv"><span class="lab">账号</span><span class="val">'+esc(s.acct)+'</span></div>'
+      + '<div class="kv"><span class="lab">数据</span><span class="val"><code>'+esc(s.data)+'</code></span></div>'
+      + noteHtml
+      + (consoleHtml ? '<div class="acts">'+consoleHtml+'</div>' : '')
+      + '<div class="cmds"><span class="ct">常用命令</span>'+cmdsHtml+'</div>'
+      + '</article>';
+  }).join('');
+
+  grid.innerHTML = html;
+  document.getElementById('empty').hidden = viewList.length !== 0;
+  document.getElementById('countHint').textContent =
+    curCat === '全部' && !q ? '共 '+SERVICES.length+' 个服务' : ('匹配 '+viewList.length+' / '+SERVICES.length+' 个服务');
+
+  /* 命令复制按钮（事件绑定到 viewList 原始数据，避免属性转义问题） */
+  Array.prototype.forEach.call(grid.querySelectorAll('.cmd-row .btn'), function(b){
+    b.addEventListener('click', function(){
+      var s = viewList[+b.getAttribute('data-i')];
+      var c = s && s.cmds[+b.getAttribute('data-c')];
+      if (c) copyText(c[1], b);
+    });
+  });
+}
+
+/* =========================================================
+ * 实时状态：fetch overview-status.json（同目录）→ 404 再试根路径
+ * ========================================================= */
+function setStatusLine(mode, text){
+  var el = document.getElementById('statusLine');
+  el.className = 'statusline' + (mode ? ' ' + mode : '');
+  el.innerHTML = '<span class="dot"></span>' + text + '<span class="genAt"></span>';
+}
+function fmtTime(iso){
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  function p(n){ return (n<10?'0':'')+n; }
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+}
+async function fetchJson(url){
+  var r = await fetch(url, { cache:'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return await r.json();
+}
+async function loadStatus(){
+  var btn = document.getElementById('btnRefresh');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> 检测中…';
+  setStatusLine('', '正在读取实时状态（overview-status.json）…');
+
+  var data = null;
+  var attempts = ['overview-status.json', '/overview-status.json'];
+  for (var i = 0; i < attempts.length; i++){
+    try{
+      var u = attempts[i] + (attempts[i].indexOf('?') === -1 ? '?t=' : '&t=') + Date.now();
+      data = await fetchJson(u);
+      if (data) break;
+    }catch(e){ /* 404 / file:// 失败 → 试下一个路径 */ }
+  }
+
+  if (data && data.services && data.services.length){
+    statusMap = {};
+    data.services.forEach(function(x){ if (x && x.name) statusMap[x.name] = x; });
+    var matched = Object.keys(statusMap).filter(function(k){
+      return SERVICES.some(function(s){ return s.k === k; });
+    }).length;
+    statusMeta = { generatedAt: data.generatedAt || '' };
+    var gen = fmtTime(data.generatedAt);
+    setStatusLine('loaded',
+      '实时状态已加载，覆盖 <em>' + matched + ' / ' + SERVICES.length + '</em> 个容器'
+      + (gen ? '（检测时间：<em>' + esc(gen) + '</em>）' : ''));
+    updateHeaderStats(true);
+  } else {
+    statusMap = {};
+    statusMeta = null;
+    setStatusLine('error',
+      '未检测——运行 <em>scripts\\overview-status.bat</em> 生成 overview-status.json 后再点「刷新实时状态」'
+      + '（生成文件会被放到 nginx html 根目录，同源访问 /overview-status.json）');
+    updateHeaderStats(false);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '刷新实时状态';
+  renderGrid();
+}
+function updateHeaderStats(hasData){
+  var run = 0, ok = 0;
+  if (hasData){
+    SERVICES.forEach(function(s){
+      var st = statusMap[s.k];
+      if (!st) return;
+      if (String(st.state||'').toLowerCase() === 'running') run++;
+      if (String(st.health||'').toLowerCase() === 'healthy') ok++;
+    });
+  }
+  document.getElementById('stRun').innerHTML = hasData
+    ? run + '<span class="tot">/25</span>' : '–<span class="tot">/25</span>';
+  document.getElementById('stHealth').textContent = hasData ? ok : '–';
+}
+
+/* =========================================================
+ * 初始化
+ * ========================================================= */
+document.getElementById('q').addEventListener('input', function(e){
+  curQ = (e && e.target ? e.target.value : this.value) || '';
+  renderGrid();
+});
+document.getElementById('btnRefresh').addEventListener('click', loadStatus);
+
+renderChips();
+renderQuick();
+renderGrid();
+loadStatus();
+</script>
+</body>
+</html>
