@@ -374,7 +374,7 @@ footer .f1 b{letter-spacing:-.3px}
       </div>
       <p class="cdesc">
         上传完成后打开仓库核对三件事：README 首屏与头图、<code>assets/brand/</code> 品牌资产是否完整、
-        Topics 是否为规范规定的 17 个。克隆到任意机器，按 README「三步启动」即可拉起同一套栈。
+        Topics 是否为规范规定的 20 个。克隆到任意机器，按 README「三步启动」即可拉起同一套栈。
       </p>
       <div class="cact">
         <div class="dbody" id="doneBody">
@@ -753,7 +753,7 @@ function publish(){
     }
     return next().then(function(){
       log('info', '文件上传完成：新建 ' + created + ' · 更新 ' + updated);
-      /* 3) Topics（品牌规范 §8 的 17 个） */
+      /* 3) Topics（品牌规范 §8 的 20 个） */
       var topics = (state.manifest && state.manifest.topics) || FALLBACK_TOPICS;
       log('cmd', 'PUT /repos/' + repo.full_name + '/topics · ' + topics.length + ' 个');
       return fetch(GH + '/repos/' + repo.full_name + '/topics', {

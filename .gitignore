@@ -6,6 +6,9 @@ render.py
 .mimosa/
 .mzcode/
 
+# ---- 生成物（不入库） ----
+site-manifest.json
+
 # ---- 临时/系统文件 ----
 *.log
 *.tmp
