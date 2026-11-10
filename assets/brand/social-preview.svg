@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  基石服务栈 BasicStack · GitHub 社交预览图（1280×640）
+  原创矢量图形。GitHub 仓库社交预览需上传 PNG：
+  magick -background none social-preview.svg social-preview.png（见 docs/BRAND.md §8）
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="基石服务栈 BasicStack：一条 docker compose up -d 拉起 25 件自托管开发基建">
+  <defs>
+    <linearGradient id="spBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B1626"/>
+      <stop offset="100%" stop-color="#0E1D33"/>
+    </linearGradient>
+    <radialGradient id="spGlowBlue" cx="15%" cy="12%" r="75%">
+      <stop offset="0%" stop-color="#1E6FE8" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="#1E6FE8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spGlowAmber" cx="95%" cy="100%" r="50%">
+      <stop offset="0%" stop-color="#F5A93C" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#F5A93C" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="spGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#FFFFFF" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#spBg)"/>
+  <rect width="1280" height="640" fill="url(#spGrid)"/>
+  <rect width="1280" height="640" fill="url(#spGlowBlue)"/>
+  <rect width="1280" height="640" fill="url(#spGlowAmber)"/>
+
+  <!-- 页眉：标志 + 版本 -->
+  <g transform="translate(56,44) scale(0.667)">
+    <path d="M35 27 H61 L57 39 H39 Z" fill="#F5A93C" stroke="#F5A93C" stroke-width="2.4" stroke-linejoin="round"/>
+    <rect x="31" y="43" width="34" height="12" rx="3" fill="#1E6FE8"/>
+    <rect x="25" y="59" width="46" height="12" rx="3" fill="#7EB3F7"/>
+  </g>
+  <text x="138" y="95" font-family="Inter,'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="32" font-weight="800" letter-spacing="-0.5" fill="#FFFFFF">BasicStack</text>
+  <rect x="1130" y="60" width="94" height="36" rx="18" fill="none" stroke="#2A3B55" stroke-width="1.5"/>
+  <text x="1177" y="84" text-anchor="middle" font-family="'JetBrains Mono',Consolas,monospace" font-size="16" fill="#EAF0F7">v1.0.0</text>
+
+  <!-- 主标语 -->
+  <text x="96" y="252" font-family="'Noto Sans SC','Source Han Sans SC','Microsoft YaHei','PingFang SC',sans-serif" font-size="44" font-weight="700" fill="#FFFFFF"><tspan>一条 </tspan><tspan font-family="'JetBrains Mono','Cascadia Code',Consolas,monospace" font-size="40" fill="#F5A93C">docker compose up -d</tspan><tspan> 拉起</tspan></text>
+  <text x="96" y="322" font-family="'Noto Sans SC','Source Han Sans SC','Microsoft YaHei','PingFang SC',sans-serif" font-size="44" font-weight="700" fill="#FFFFFF"><tspan fill="#7EB3F7">25 件</tspan><tspan>自托管开发基建，开箱即连。</tspan></text>
+
+  <!-- 服务名芯片 第一行 -->
+  <g font-family="Inter,'Segoe UI',Arial,sans-serif" font-size="18" fill="#EAF0F7" text-anchor="middle">
+    <rect x="96" y="382" width="79" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="135.5" y="407">MySQL</text>
+    <rect x="187" y="382" width="79" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="226.5" y="407">Redis</text>
+    <rect x="278" y="382" width="128" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="342" y="407">PostgreSQL</text>
+    <rect x="418" y="382" width="128" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="482" y="407">ClickHouse</text>
+    <rect x="558" y="382" width="157" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="636.5" y="407">Elasticsearch</text>
+    <rect x="727" y="382" width="89" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="771.5" y="407">Milvus</text>
+    <rect x="828" y="382" width="79" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="867.5" y="407">Neo4j</text>
+  </g>
+  <!-- 服务名芯片 第二行 -->
+  <g font-family="Inter,'Segoe UI',Arial,sans-serif" font-size="18" fill="#EAF0F7" text-anchor="middle">
+    <rect x="96" y="433" width="108" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="150" y="458">RabbitMQ</text>
+    <rect x="216" y="433" width="79" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="255.5" y="458">MinIO</text>
+    <rect x="307" y="433" width="79" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="346.5" y="458">Nacos</text>
+    <rect x="398" y="433" width="108" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="452" y="458">Langfuse</text>
+    <rect x="518" y="433" width="89" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="562.5" y="458">MinerU</text>
+    <rect x="619" y="433" width="89" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="663.5" y="458">RustFS</text>
+    <rect x="720" y="433" width="99" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="769.5" y="458">Jenkins</text>
+    <rect x="831" y="433" width="89" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="875.5" y="458">GitLab</text>
+    <rect x="932" y="433" width="59" height="38" rx="19" fill="#14233B" stroke="#24364F"/><text x="961.5" y="458">+10</text>
+  </g>
+
+  <!-- 页脚 -->
+  <line x1="56" y1="546" x2="1224" y2="546" stroke="#1C2C44" stroke-width="1.5"/>
+  <text x="56" y="590" font-family="'Noto Sans SC','Source Han Sans SC','Microsoft YaHei','PingFang SC',sans-serif" font-size="22" font-weight="500" fill="#EAF0F7">基石服务栈 BasicStack</text>
+  <text x="1224" y="590" text-anchor="end" font-family="'JetBrains Mono',Consolas,monospace" font-size="15" fill="#64748B">ports / passwords / consoles pre-wired</text>
+</svg>
