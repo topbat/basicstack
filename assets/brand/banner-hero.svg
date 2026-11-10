@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  基石服务栈 BasicStack · README 头图横幅（1200×300）
+  原创矢量图形：徽章标志 + 标准字 + 终端芯片，深色工程风。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-label="基石服务栈 BasicStack —— 一条 docker compose up -d 拉起 25 件自托管开发基建">
+  <defs>
+    <linearGradient id="bsBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B1626"/>
+      <stop offset="100%" stop-color="#0E1D33"/>
+    </linearGradient>
+    <radialGradient id="bsGlowBlue" cx="18%" cy="20%" r="70%">
+      <stop offset="0%" stop-color="#1E6FE8" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#1E6FE8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bsGlowAmber" cx="92%" cy="95%" r="45%">
+      <stop offset="0%" stop-color="#F5A93C" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#F5A93C" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="bsGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#FFFFFF" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="300" fill="url(#bsBg)"/>
+  <rect width="1200" height="300" fill="url(#bsGrid)"/>
+  <rect width="1200" height="300" fill="url(#bsGlowBlue)"/>
+  <rect width="1200" height="300" fill="url(#bsGlowAmber)"/>
+
+  <!-- 徽章标志 -->
+  <g transform="translate(64,78) scale(1.5)">
+    <rect x="0" y="0" width="96" height="96" rx="22" fill="#101E33"/>
+    <rect x="0.75" y="0.75" width="94.5" height="94.5" rx="21.25" fill="none" stroke="#22334F" stroke-width="1.5"/>
+    <path d="M35 27 H61 L57 39 H39 Z" fill="#F5A93C" stroke="#F5A93C" stroke-width="2.4" stroke-linejoin="round"/>
+    <rect x="31" y="43" width="34" height="12" rx="3" fill="#1E6FE8"/>
+    <rect x="25" y="59" width="46" height="12" rx="3" fill="#7EB3F7"/>
+  </g>
+
+  <!-- 标准字 -->
+  <text x="252" y="132" font-family="Inter,'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="58" font-weight="800" letter-spacing="-1" fill="#FFFFFF">BasicStack</text>
+  <text x="255" y="172" font-family="'Noto Sans SC','Source Han Sans SC','Microsoft YaHei','PingFang SC',sans-serif" font-size="23" font-weight="500" letter-spacing="4" fill="#EAF0F7">基石服务栈 · 开箱即连的自托管开发基建</text>
+  <text x="255" y="212" font-family="Inter,'Segoe UI',Arial,sans-serif" font-size="14" font-weight="400" letter-spacing="1" fill="#64748B">v1.0.0 · 25 services · ports / passwords / consoles pre-wired</text>
+
+  <!-- 终端芯片 -->
+  <g>
+    <rect x="770" y="92" width="366" height="118" rx="14" fill="#101E33" stroke="#2A3B55" stroke-width="1.5"/>
+    <circle cx="794" cy="114" r="4.5" fill="#33445F"/>
+    <circle cx="810" cy="114" r="4.5" fill="#33445F"/>
+    <circle cx="826" cy="114" r="4.5" fill="#33445F"/>
+    <text x="846" y="119" font-family="Inter,'Segoe UI',Arial,sans-serif" font-size="12" fill="#64748B">basic-service — compose</text>
+    <line x1="782" y1="130" x2="1124" y2="130" stroke="#1C2C44" stroke-width="1"/>
+    <text x="788" y="162" font-family="'JetBrains Mono','Cascadia Code',Consolas,monospace" font-size="17"><tspan fill="#F5A93C">$</tspan><tspan fill="#FFFFFF" dx="9">docker compose up -d</tspan></text>
+    <text x="788" y="190" font-family="'JetBrains Mono','Cascadia Code',Consolas,monospace" font-size="12.5" fill="#7EB3F7">25 services started · network basic-net</text>
+  </g>
+</svg>
