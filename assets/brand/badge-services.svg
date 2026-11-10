@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 基石服务栈 BasicStack · 服务数量徽章（自托管矢量版） -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 20" width="92" height="20" role="img" aria-label="services: 25">
+  <rect width="92" height="20" rx="3" fill="#1E6FE8"/>
+  <rect width="64" height="20" rx="3" fill="#2A3B55"/>
+  <rect width="64" height="20" rx="3" fill="#FFFFFF" fill-opacity="0.06"/>
+  <path d="M64 0 h5 v20 h-5 z" fill="#FFFFFF" fill-opacity="0.08"/>
+  <text x="32" y="14" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#EAF0F7">services</text>
+  <text x="78.5" y="14" text-anchor="middle" font-family="'JetBrains Mono',Consolas,monospace" font-size="11" font-weight="700" fill="#FFFFFF">25</text>
+</svg>
