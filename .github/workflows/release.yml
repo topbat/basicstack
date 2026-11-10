@@ -64,3 +64,4 @@ jobs:
       # ---- 把发布地址写入 $GITHUB_STEP_SUMMARY，便于在运行页直接点开 ----
       - name: Write release URL to job summary
         run: echo "Release published: ${{ steps.create-release.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+# note: workflow re-registration touch (2026-11-10)
