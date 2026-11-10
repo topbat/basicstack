@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  基石服务栈 BasicStack · 标志（透明底版）
+  用于浅色/深色文档背景，不含徽章底板。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="BasicStack mark">
+  <path d="M35 27 H61 L57 39 H39 Z" fill="#F5A93C" stroke="#F5A93C" stroke-width="2.4" stroke-linejoin="round"/>
+  <rect x="31" y="43" width="34" height="12" rx="3" fill="#1E6FE8"/>
+  <rect x="25" y="59" width="46" height="12" rx="3" fill="#7EB3F7"/>
+</svg>
