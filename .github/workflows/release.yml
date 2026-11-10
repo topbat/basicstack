@@ -1,19 +1,6 @@
-# =====================================================================================
-# 基石服务栈 BasicStack · 发布工作流（Release）
-#
-# 触发方式：
-#   推送任意 v* 标签即触发，例如：
-#     git tag v1.0.1 && git push origin v1.0.1
-#   或在 GitHub 网页端 Releases -> Draft a new release 时推送新标签，同样自动触发。
-#
-# 产物说明：
-#   1. 将仓库打包为 basic-service-<标签名>.zip（排除 .git、agent-evolution-ppt、
-#      projects、diagram-plugin-mcp-skill 等非发布内容）；
-#   2. 用 awk 从 CHANGELOG.md 提取第一个 "## [版本]" 段落作为发布说明
-#      （awk 变量 c 从 0 开始：命中第一个 "## [" 时 c 增到 1 并开始输出，
-#      命中第二个时增到 2 并退出），提取结果为空时回退到默认文案；
-#   3. 创建 GitHub Release 并上传 zip，标记为 latest，最后把发布地址写入任务摘要。
-# =====================================================================================
+# 基石服务栈 BasicStack · Release 工作流
+# 触发：推送 v* 标签（git tag v1.0.1 && git push origin v1.0.1，或发布页推送标签）。
+# 产物：整仓 zip 包 + GitHub Release（发布说明取 CHANGELOG.md 最新版本段落）。
 name: Release
 
 on:
@@ -32,36 +19,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # ---- 打包：整仓 zip，排除 .git 与非发布目录（演示用 PPT / 子项目 / 技能包） ----
       - name: Pack repository zip
-        run: |
-          zip -r "basic-service-${GITHUB_REF_NAME}.zip" . \
-            -x ".git/*" \
-               "agent-evolution-ppt/*" \
-               "projects/*" \
-               "diagram-plugin-mcp-skill/*"
+        run: zip -r "basic-service-${GITHUB_REF_NAME}.zip" . -x ".git/*" "agent-evolution-ppt/*" "projects/*" "diagram-plugin-mcp-skill/*"
 
-      # ---- 发布说明：取 CHANGELOG.md 最新一个版本段落；为空则回退默认文案 ----
-      - name: Extract latest changelog section as release notes
-        run: |
-          awk '/^## \[/{c++; if(c==2) exit} c==1' CHANGELOG.md > release_body.md
-          if [ ! -s release_body.md ]; then
-            printf '%s\n\n详见 [CHANGELOG.md](https://github.com/%s/blob/%s/CHANGELOG.md)。\n' \
-              "基石服务栈 BasicStack ${GITHUB_REF_NAME}" \
-              "${GITHUB_REPOSITORY}" \
-              "${GITHUB_REF_NAME}" > release_body.md
-          fi
+      - name: Extract changelog as release notes
+        run: awk '/^## \[/{c++; if(c==2) exit} c==1' CHANGELOG.md > release_body.md
 
-      # ---- 创建 Release 并上传 zip；make_latest 标记为最新版 ----
-      - id: create-release
-        name: Create GitHub release with zip
+      - name: Create release with zip package
         uses: softprops/action-gh-release@v2
         with:
           files: basic-service-*.zip
           body_path: release_body.md
-          make_latest: "true"
-
-      # ---- 把发布地址写入 $GITHUB_STEP_SUMMARY，便于在运行页直接点开 ----
-      - name: Write release URL to job summary
-        run: echo "Release published: ${{ steps.create-release.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-# note: workflow re-registration touch (2026-11-10)
