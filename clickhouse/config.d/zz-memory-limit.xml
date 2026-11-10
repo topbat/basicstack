@@ -1,0 +1,5 @@
+<clickhouse>
+    <!-- 限制 ClickHouse 服务端最大内存为 1.5GB：本机 Docker 虚拟机仅 8GB，
+         不限制时 ClickHouse 默认可能按总内存比例占用，挤压其他基础服务 -->
+    <max_server_memory_usage>1610612736</max_server_memory_usage>
+</clickhouse>
