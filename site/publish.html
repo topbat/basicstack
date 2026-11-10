@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="description" content="基石服务栈 BasicStack 发布控制台：把本仓库按字节原样发布到 GitHub。令牌即登录，仅限本机/局域网使用。"/>
+<title>发布 · 基石服务栈 BasicStack v1.0.0</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' rx='20' fill='%230B1626'/%3E%3Cpath d='M35 27H61L57 39H39Z' fill='%23F5A93C' stroke='%23F5A93C' stroke-width='2.4' stroke-linejoin='round'/%3E%3Crect x='31' y='43' width='34' height='12' rx='3' fill='%231E6FE8'/%3E%3Crect x='25' y='59' width='46' height='12' rx='3' fill='%237EB3F7'/%3E%3C/svg%3E"/>
+<style>
+/* ============================================================
+   基石服务栈 BasicStack · 发布控制台（site/publish.html）
+   配色/组件均遵循 docs/BRAND.md：夜岩黑底 + 基石蓝主色，
+   窑金仅作点睛（$ 提示符与关键数字），单文件、零外部依赖。
+   ============================================================ */
+:root{
+  --ink:#0B1626;            /* 夜岩黑 */
+  --panel-a:#14233B;        /* 岩板蓝（上） */
+  --panel-b:#101E33;        /* 岩板蓝（下） */
+  --term:#0A1424;           /* 终端底 */
+  --primary:#1E6FE8;        /* 基石蓝 */
+  --primary-deep:#0F4FB5;   /* 深基石蓝 */
+  --sky:#7EB3F7;            /* 天青 */
+  --amber:#F5A93C;          /* 窑金（点睛专用） */
+  --mist:#EAF0F7;           /* 雾白正文 */
+  --gray:#64748B;           /* 岩灰辅助 */
+  --line:#22334F;           /* 岩脉线 */
+  --line-2:#2A3B55;
+  --chip-line:#24364F;
+  --err:#F2795B;            /* 功能性错误色（仅日志/状态） */
+  --sans:"Inter","Noto Sans SC","Segoe UI","Microsoft YaHei","PingFang SC","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono","Cascadia Code",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:dark}
+body{
+  font-family:var(--sans);background:var(--ink);color:var(--mist);
+  font-size:15px;line-height:1.7;min-height:100vh;position:relative;
+}
+/* 4% 白细网格（40px 栅格）+ 单侧蓝色微光 + ≤10% 窑金氛围光（BRAND §6） */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(720px 420px at 12% -6%,rgba(30,111,232,.20),transparent 70%),
+    radial-gradient(560px 360px at 102% 108%,rgba(245,169,60,.08),transparent 70%);
+}
+main,header.top,footer,.warn{position:relative;z-index:1}
+a{color:var(--sky);text-decoration:none}
+a:hover{text-decoration:underline}
+code,.mono{font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--sky);outline-offset:2px;border-radius:4px}
+
+/* ---------- 顶部警示条（file:// 打开时） ---------- */
+.warn{
+  display:none;background:#2B1D10;border-bottom:1px solid #6B4A1F;
+  color:#F5C89A;padding:12px 20px;font-size:13.5px;text-align:center;
+}
+.warn b{color:var(--amber)}
+.warn.show{display:block}
+
+/* ---------- 页眉 ---------- */
+header.top{
+  max-width:1120px;margin:0 auto;padding:22px 24px 0;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+header.top .mark{width:34px;height:34px;flex:none}
+.wordmark{display:flex;flex-direction:column}
+.wordmark .n1{font-weight:800;letter-spacing:-.5px;font-size:17px;color:var(--mist)}
+.wordmark .n2{font-size:12px;color:var(--gray)}
+header.top .pills{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.pill{
+  font-family:var(--mono);font-size:12px;color:var(--sky);
+  background:var(--panel-b);border:1px solid var(--chip-line);
+  border-radius:999px;padding:3px 12px;white-space:nowrap;
+}
+.pill.gold{color:var(--amber);border-color:#5A4321}
+
+/* ---------- 主体 ---------- */
+main{max-width:1120px;margin:0 auto;padding:0 24px 40px}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:1.35fr 1fr;gap:28px;align-items:center;padding:44px 0 34px}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.22em;color:var(--sky);text-transform:uppercase;margin-bottom:12px}
+h1{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.5px;line-height:1.25;margin-bottom:14px}
+.tagline{color:#C4D2E4;font-size:15.5px;max-width:56ch}
+.tagline code{color:var(--sky);background:var(--panel-b);border:1px solid var(--chip-line);border-radius:6px;padding:1px 7px;font-size:.88em}
+.hchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.chip{
+  font-size:12.5px;color:#B9C9DE;background:var(--panel-a);
+  border:1px solid var(--chip-line);border-radius:999px;padding:4px 14px;white-space:nowrap;
+}
+.chip b{color:var(--amber);font-family:var(--mono);font-weight:700}
+
+/* 终端芯片（品牌签名组件） */
+.term{background:var(--term);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(4,10,20,.55);overflow:hidden}
+.tdots{display:flex;gap:7px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.tdots i{width:10px;height:10px;border-radius:50%;background:var(--line-2)}
+.tbody{padding:16px 18px 18px;font-family:var(--mono);font-size:13px;line-height:2}
+.tl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mist)}
+.pf{color:var(--amber);font-weight:700;margin-right:8px}
+.tl.out{color:var(--sky)}
+.dim{color:var(--gray)}
+
+/* 步骤卡片 1-4 */
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:6px 0 26px}
+.card{
+  background:linear-gradient(180deg,var(--panel-a),var(--panel-b));
+  border:1px solid var(--line);border-radius:14px;padding:22px 24px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.card[data-state="active"]{border-color:var(--primary)}
+.card[data-state="done"]{border-color:#2E5B34}
+.card[data-state="error"]{border-color:var(--err)}
+.chead{display:flex;align-items:flex-start;gap:14px}
+.stepnum{
+  font-family:var(--mono);font-weight:800;font-size:40px;line-height:1;
+  color:transparent;-webkit-text-stroke:1.5px #3A568B;
+}
+@supports not (-webkit-text-stroke:1px #000){.stepnum{color:#3A568B}}
+@supports not (-webkit-text-stroke:1px #000){.stepnum{color:#3A568B}}
+.ctitle{flex:1}
+.ctitle h2{font-size:17px;font-weight:700;letter-spacing:-.2px}
+.ctitle p{font-size:12.5px;color:var(--gray);margin-top:2px}
+.st{
+  flex:none;font-size:12px;font-family:var(--mono);border-radius:999px;
+  padding:2px 12px;border:1px solid var(--chip-line);color:var(--gray);background:rgba(11,22,38,.5);
+}
+.st[data-s="active"]{color:var(--sky);border-color:#2C4E86}
+.st[data-s="done"]{color:#8FD49A;border-color:#2E5B34}
+.st[data-s="error"]{color:var(--err);border-color:#6B3325}
+.cdesc{font-size:13.5px;color:#B9C9DE}
+.cdesc b{color:var(--mist)}
+.cdesc code{color:var(--sky);font-family:var(--mono);font-size:.9em}
+.cact{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+
+/* 表单 */
+label.f{font-size:12.5px;color:var(--gray);display:block;margin-bottom:5px}
+input[type=text],input[type=password],textarea{
+  width:100%;background:var(--ink);border:1px solid var(--line-2);border-radius:10px;
+  color:var(--mist);font-family:var(--mono);font-size:13.5px;padding:10px 13px;
+}
+textarea{font-family:var(--sans);font-size:13px;resize:vertical;min-height:66px;line-height:1.6}
+input:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(30,111,232,.22)}
+input::placeholder,textarea::placeholder{color:#3E5474}
+.radio{display:flex;gap:10px}
+.radio label{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;
+  background:var(--ink);border:1px solid var(--line-2);border-radius:10px;
+  padding:9px 10px;font-size:13px;color:#B9C9DE;
+}
+.radio input{accent-color:var(--primary)}
+.remember{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--gray);cursor:pointer}
+.remember input{accent-color:var(--primary)}
+.hint{font-size:12px;color:var(--gray)}
+.hint code{color:var(--sky)}
+.state{font-size:13px;color:var(--gray);font-family:var(--mono)}
+.state.ok{color:#8FD49A}
+.state.err{color:var(--err)}
+
+/* 按钮 */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:none;border-radius:10px;padding:11px 22px;cursor:pointer;
+  font-family:var(--sans);font-size:14px;font-weight:700;letter-spacing:.2px;
+  color:#fff;background:linear-gradient(135deg,var(--primary),var(--primary-deep));
+  transition:filter .15s ease,transform .05s ease;
+}
+.btn:hover{filter:brightness(1.12)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{cursor:not-allowed;background:#1B2A44;color:#5B6E8C;filter:none}
+.btn.ghost{
+  background:transparent;color:var(--sky);border:1px solid var(--line-2);
+}
+.btn.ghost:hover{border-color:var(--primary);filter:none;background:rgba(30,111,232,.08)}
+.btn.w{width:100%}
+
+/* 进度条 */
+.pbar{height:8px;background:var(--ink);border:1px solid var(--line-2);border-radius:999px;overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--sky));transition:width .25s ease}
+.pmeta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--gray)}
+
+/* 完成卡内容 */
+.dbody{display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:#B9C9DE}
+.clone{
+  font-family:var(--mono);font-size:12.5px;color:var(--sky);
+  background:var(--term);border:1px solid var(--line);border-radius:10px;
+  padding:9px 13px;word-break:break-all;cursor:pointer;
+}
+.waiting{color:var(--gray);font-size:13px}
+
+/* 清单面板 */
+.panel{background:linear-gradient(180deg,var(--panel-a),var(--panel-b));border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.phead{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.phead h2{font-size:16px;font-weight:700}
+.phead .meta{font-family:var(--mono);font-size:12.5px;color:var(--sky)}
+.phead .src{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--gray)}
+.selbar{display:flex;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--line);font-size:13px;color:#B9C9DE;flex-wrap:wrap}
+.selbar .tot{font-family:var(--mono);color:var(--gray)}
+.selbar .tot b{color:var(--amber);font-weight:700}
+.linkish{background:none;border:none;color:var(--sky);cursor:pointer;font-size:13px;font-family:var(--sans);padding:0}
+.linkish:hover{text-decoration:underline}
+.fgroup{padding:10px 22px 14px}
+.gname{font-size:12.5px;color:var(--sky);font-family:var(--mono);letter-spacing:.08em;margin:10px 0 6px}
+.frow{
+  display:flex;align-items:center;gap:12px;padding:7px 10px;border-radius:8px;cursor:pointer;
+  border-top:1px solid rgba(34,51,79,.55);
+}
+.frow:first-of-type{border-top:none}
+.frow:hover{background:rgba(30,111,232,.07)}
+.frow input{accent-color:var(--primary);flex:none}
+.fpath{font-family:var(--mono);font-size:12.5px;color:var(--mist);flex:1;word-break:break-all}
+.fsize{font-family:var(--mono);font-size:12px;color:var(--gray);flex:none}
+.fempty{padding:22px;color:var(--gray);font-size:13px}
+
+/* 日志面板 */
+.log{margin-top:18px}
+.log .tbody{padding:14px 18px;font-size:12.5px;line-height:1.9;max-height:300px;overflow:auto}
+.ln{white-space:pre-wrap;word-break:break-all}
+.ln .pf{margin-right:8px}
+.ln.cmd{color:var(--mist)}
+.ln.ok .pf{color:var(--sky)}
+.ln.ok{color:#A9C8EF}
+.ln.err{color:var(--err)}
+.ln.info{color:var(--gray)}
+
+/* 页脚 */
+footer{border-top:1px solid var(--line);margin-top:34px;background:rgba(11,22,38,.6)}
+footer .fin{
+  max-width:1120px;margin:0 auto;padding:26px 24px 34px;
+  display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--gray);
+}
+footer .f1{display:flex;align-items:center;gap:10px;color:#B9C9DE}
+footer .f1 svg{width:24px;height:24px;flex:none}
+footer .f1 b{letter-spacing:-.3px}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;padding:34px 0 26px}
+  .steps{grid-template-columns:1fr}
+  header.top .pills{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="warn" id="fileWarn">
+  检测到以 <b>file://</b> 协议打开本页。发布控制台必须经由 nginx 同源访问：
+  请改为打开 <b>http://127.0.0.1/publish.html</b> 或 <b>http://127.0.0.1/repo/site/publish.html</b>
+  —— 只有同源的 <code>/repo/</code>（nginx 别名到仓库根）才能按字节读取清单与源文件。
+</div>
+
+<header class="top">
+  <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+    <path d="M35 27 H61 L57 39 H39 Z" fill="#F5A93C" stroke="#F5A93C" stroke-width="2.4" stroke-linejoin="round"/>
+    <rect x="31" y="43" width="34" height="12" rx="3" fill="#1E6FE8"/>
+    <rect x="25" y="59" width="46" height="12" rx="3" fill="#7EB3F7"/>
+  </svg>
+  <div class="wordmark">
+    <span class="n1">基石服务栈 BasicStack</span>
+    <span class="n2">发布控制台 · Publish Console</span>
+  </div>
+  <div class="pills">
+    <span class="pill gold">v1.0.0</span>
+    <span class="pill">2026-11-10</span>
+    <span class="pill">仅限本机 / 局域网</span>
+  </div>
+</header>
+
+<main>
+  <!-- ======================= Hero ======================= -->
+  <section class="hero">
+    <div>
+      <div class="eyebrow">BasicStack · 发布到 GitHub</div>
+      <h1>把这一整套栈，原样发布成一个仓库</h1>
+      <p class="tagline">基石服务栈 BasicStack —— 一条 <code>docker compose up -d</code> 拉起 25 件自托管开发基建（MySQL/Redis/PG/ES/ClickHouse/Milvus/Neo4j/RabbitMQ/MinIO/Nacos/Langfuse/MinerU 等），端口/密码/管理台全配好，开箱即连。</p>
+      <div class="hchips">
+        <span class="chip">一键拉起，开箱即连</span>
+        <span class="chip"><b>25</b> 件基建 · <b>12</b> 个管理台</span>
+        <span class="chip" id="heroFiles">— 个文件待发布</span>
+        <span class="chip">字节级保真上传</span>
+      </div>
+    </div>
+    <div class="term" aria-label="终端示意：docker compose up -d 启动全部服务">
+      <div class="tdots"><i></i><i></i><i></i></div>
+      <div class="tbody">
+        <div class="tl"><span class="pf">$</span>docker compose up -d</div>
+        <div class="tl out">basic-net · 25 件服务全部就绪 · 端口/密码已预配</div>
+        <div class="tl"><span class="pf">$</span><span class="dim">open http://127.0.0.1/publish.html</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 步骤 1-4 ======================= -->
+  <section class="steps">
+
+    <!-- 步骤 1：读取发布清单 -->
+    <article class="card" id="step1" data-state="idle">
+      <div class="chead">
+        <div class="stepnum" aria-hidden="true">01</div>
+        <div class="ctitle"><h2>读取发布清单</h2><p>MANIFEST · 同源 /repo/</p></div>
+        <span class="st" data-s="idle">待开始</span>
+      </div>
+      <p class="cdesc">
+        清单固定取自仓库根的 <code>site-manifest.json</code>（nginx 已把 <code>/repo/</code> 别名到仓库根）。
+        随后每个文件以 <code>GET /repo/&lt;path&gt; → arrayBuffer</code> 读取：
+        PNG 与 YAML、SQL 一视同仁，<b>原字节上传，不转码、不改换行</b>。
+      </p>
+      <div class="cact">
+        <button class="btn" id="btnManifest" type="button">读取发布清单</button>
+        <span class="state" id="manifestState">数据源：<code>/repo/site-manifest.json</code></span>
+      </div>
+    </article>
+
+    <!-- 步骤 2：填入访问令牌 -->
+    <article class="card" id="step2" data-state="idle">
+      <div class="chead">
+        <div class="stepnum" aria-hidden="true">02</div>
+        <div class="ctitle"><h2>填入访问令牌</h2><p>TOKEN · 令牌 = 登录</p></div>
+        <span class="st" data-s="idle">待开始</span>
+      </div>
+      <p class="cdesc">
+        <b>令牌即登录</b>：一个 GitHub Personal Access Token 就是本次发布的全部凭据——
+        无需账号密码，无需注册流程。请求仅由浏览器直发 <code>api.github.com</code>，
+        不经过任何第三方服务器；令牌只存于本页内存，日志中永不显示。
+      </p>
+      <div class="cact">
+        <label class="f" for="tokenInput">Personal Access Token</label>
+        <input type="password" id="tokenInput" placeholder="ghp_… 或 github_pat_…" autocomplete="off" spellcheck="false"/>
+        <label class="remember"><input type="checkbox" id="rememberToken"/> 在本机记住令牌（存浏览器 localStorage，仅本机生效）</label>
+        <button class="btn" id="btnVerify" type="button">验证令牌并登录</button>
+        <span class="state" id="tokenState">未登录</span>
+        <p class="hint">classic 令牌需 <code>repo</code> 权限；fine-grained 令牌需 <code>Administration: write</code> 与 <code>Contents: write</code>。</p>
+      </div>
+    </article>
+
+    <!-- 步骤 3：建仓并上传 -->
+    <article class="card" id="step3" data-state="idle">
+      <div class="chead">
+        <div class="stepnum" aria-hidden="true">03</div>
+        <div class="ctitle"><h2>建仓并上传</h2><p>PUBLISH · 串行逐个提交</p></div>
+        <span class="st" data-s="idle">待开始</span>
+      </div>
+      <p class="cdesc">
+        在你的账号下创建仓库（同名已存在则直接复用），然后按清单逐个上传文件字节，
+        最后写入品牌规范规定的仓库描述与 Topics。每一步都记录在下方日志里，可随时中断。
+      </p>
+      <div class="cact">
+        <label class="f" for="repoInput">仓库名</label>
+        <input type="text" id="repoInput" value="basic-service" spellcheck="false"/>
+        <div class="radio">
+          <label><input type="radio" name="vis" value="private" checked/> 私有（推荐）</label>
+          <label><input type="radio" name="vis" value="public"/> 公开</label>
+        </div>
+        <label class="f" for="descInput">仓库描述（已按 docs/BRAND.md §2.2 预填，可修改）</label>
+        <textarea id="descInput"></textarea>
+        <button class="btn w" id="btnPublish" type="button" disabled>创建仓库并上传</button>
+        <div class="pbar"><i id="pubBar"></i></div>
+        <div class="pmeta"><span id="pubCount">0 / 0</span><span id="pubPct">0%</span></div>
+      </div>
+    </article>
+
+    <!-- 步骤 4：完成验证 -->
+    <article class="card" id="step4" data-state="idle">
+      <div class="chead">
+        <div class="stepnum" aria-hidden="true">04</div>
+        <div class="ctitle"><h2>完成验证</h2><p>VERIFY · 克隆即用</p></div>
+        <span class="st" data-s="idle">待开始</span>
+      </div>
+      <p class="cdesc">
+        上传完成后打开仓库核对三件事：README 首屏与头图、<code>assets/brand/</code> 品牌资产是否完整、
+        Topics 是否为规范规定的 17 个。克隆到任意机器，按 README「三步启动」即可拉起同一套栈。
+      </p>
+      <div class="cact">
+        <div class="dbody" id="doneBody">
+          <span class="waiting">等待第 3 步完成……完成后这里会出现仓库地址与克隆命令。</span>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ======================= 发布清单 ======================= -->
+  <section class="panel">
+    <div class="phead">
+      <h2>发布清单</h2>
+      <span class="meta" id="fileMeta">尚未读取</span>
+      <span class="src">GET /repo/&lt;path&gt; → arrayBuffer</span>
+    </div>
+    <div class="selbar">
+      <button class="linkish" id="btnAll" type="button">全选</button>
+      <button class="linkish" id="btnNone" type="button">清空</button>
+      <span class="tot">已选 <b id="selCount">0</b> / <span id="totalCount">0</span> 个文件 · 共 <b id="selBytes">0 B</b></span>
+    </div>
+    <div id="fileGroups">
+      <div class="fempty">完成第 1 步后，清单会在这里列出：路径、分组与字节数。默认全部勾选。</div>
+    </div>
+  </section>
+
+  <!-- ======================= 发布日志 ======================= -->
+  <section class="panel log">
+    <div class="phead">
+      <h2>发布日志</h2>
+      <span class="src">publish.log · 令牌永不显示</span>
+    </div>
+    <div class="tbody" id="logBody"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="fin">
+    <div class="f1">
+      <svg viewBox="0 0 96 96" aria-hidden="true">
+        <path d="M35 27 H61 L57 39 H39 Z" fill="#F5A93C" stroke="#F5A93C" stroke-width="2.4" stroke-linejoin="round"/>
+        <rect x="31" y="43" width="34" height="12" rx="3" fill="#1E6FE8"/>
+        <rect x="25" y="59" width="46" height="12" rx="3" fill="#7EB3F7"/>
+      </svg>
+      <span><b>基石服务栈 BasicStack v1.0.0</b>　——　一键拉起，开箱即连。</span>
+    </div>
+    <span>本页与全部品牌资产为本仓库原创矢量图形；文中出现的 MySQL、Redis 等名称仅用于指代对应组件（指示性使用），各商标归其所有者，不构成任何背书或隶属关系。</span>
+    <span>发布功能仅限本机 / 局域网使用，请勿将本页暴露到公网。</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ============================================================
+   基石服务栈 BasicStack · 发布控制台逻辑
+   架构：固定 BASE='/repo/'（nginx 把 /repo/ 别名到仓库根）。
+   每个文件 GET BASE+path → arrayBuffer → 原字节 → base64 →
+   GitHub Contents API 逐个上传，字节级保真。
+   ============================================================ */
+var BASE   = '/repo/';
+var GH     = 'https://api.github.com';
+var VERSION= 'v1.0.0';
+var TOKEN_KEY = 'bs_publish_token';
+
+/* docs/BRAND.md §2.2 / §8 的兜底值（清单未携带时使用） */
+var FALLBACK_DESC = '基石服务栈 BasicStack —— 一条 docker compose up -d 拉起 25 件自托管开发基建（MySQL/Redis/PG/ES/ClickHouse/Milvus/Neo4j/RabbitMQ/MinIO/Nacos/Langfuse/MinerU 等），端口/密码/管理台全配好，开箱即连。';
+var FALLBACK_TOPICS = ['docker-compose','self-hosted','devops','infrastructure','mysql','redis','postgresql','elasticsearch','clickhouse','milvus','neo4j','rabbitmq','minio','rustfs','nacos','langfuse','mineru','vector-database','llm-observability','developer-tools'];
+var GROUP_LABELS = { docs:'文档', site:'编排与站点', config:'服务配置', scripts:'脚本工具箱', brand:'品牌资产' };
+var STEP_TEXT = { idle:'待开始', active:'进行中', done:'已完成', error:'出错' };
+
+var state = {
+  manifest: null,   // 清单对象
+  files: [],        // [{path,bytes,group,selected}]
+  token: '',
+  login: null,      // 验证通过的 GitHub 登录名
+  repoInfo: null,   // 已建/复用仓库信息
+  busy: false       // 发布进行中
+};
+
+/* ---------- 小工具 ---------- */
+function $(s){ return document.querySelector(s); }
+function fmtB(n){
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(2) + ' MB';
+}
+function el(tag, cls, text){
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+/* ---------- 日志（令牌永不入日志） ---------- */
+function log(kind, text){
+  var body = $('#logBody');
+  var ln = el('div', 'ln ' + kind);
+  ln.appendChild(el('span', 'pf', kind === 'cmd' ? '$' : '·'));
+  ln.appendChild(document.createTextNode(text));
+  body.appendChild(ln);
+  body.scrollTop = body.scrollHeight;
+}
+
+/* ---------- 步骤状态 ---------- */
+function setStep(n, s){
+  var c = document.getElementById('step' + n);
+  c.dataset.state = s;
+  var b = c.querySelector('.st');
+  b.textContent = STEP_TEXT[s];
+  b.dataset.s = s;
+}
+
+/* ---------- 字节 → base64（分块，避免栈溢出） ---------- */
+function bytesToBase64(bytes){
+  var bin = '', CH = 0x8000;
+  for (var i = 0; i < bytes.length; i += CH){
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  }
+  return btoa(bin);
+}
+
+/* ---------- 读取单个文件（原字节） ---------- */
+function fetchFileBytes(path){
+  var url = BASE + path.split('/').map(encodeURIComponent).join('/');
+  return fetch(url, { cache: 'no-store' }).then(function(res){
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.arrayBuffer();
+  }).then(function(buf){ return new Uint8Array(buf); });
+}
+
+/* ---------- GitHub 请求头 ---------- */
+function ghHeaders(){
+  return {
+    'Authorization': 'Bearer ' + state.token,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+}
+
+/* ---------- 第 1 步：读取清单 ---------- */
+function totalBytes(){
+  return state.files.reduce(function(a, f){ return a + (f.bytes || 0); }, 0);
+}
+function loadManifest(){
+  setStep(1, 'active');
+  $('#btnManifest').disabled = true;
+  log('cmd', 'GET ' + BASE + 'site-manifest.json');
+  fetch(BASE + 'site-manifest.json', { cache: 'no-store' }).then(function(res){
+    if (!res.ok) throw new Error('HTTP ' + res.status + '（404 = 清单不在仓库根，或 /repo/ 未挂载）');
+    return res.json();
+  }).then(function(m){
+    if (!m || !Array.isArray(m.files) || !m.files.length) throw new Error('清单格式异常：files 为空');
+    state.manifest = m;
+    state.files = m.files.map(function(f){
+      return { path: f.path, bytes: f.bytes || 0, group: f.group || 'site', selected: true };
+    });
+    renderFiles();
+    $('#descInput').value = m.description || FALLBACK_DESC;
+    $('#fileMeta').textContent = m.version || VERSION;
+    $('#manifestState').textContent = '清单就绪 · ' + state.files.length + ' 个文件 · 共 ' + fmtB(totalBytes());
+    $('#manifestState').className = 'state ok';
+    setStep(1, 'done');
+    log('ok', '清单就绪：' + state.files.length + ' 个文件 · 共 ' + fmtB(totalBytes()) + ' · 版本 ' + (m.version || VERSION));
+    refreshPublishReady();
+  }).catch(function(e){
+    setStep(1, 'error');
+    $('#manifestState').textContent = '读取失败：' + e.message;
+    $('#manifestState').className = 'state err';
+    log('err', '读取清单失败：' + e.message);
+    log('info', '排查：确认 nginx 容器已把仓库根挂载为 /srv/basic-service（见 nginx/conf.d/default.conf 的 location /repo/），且 site-manifest.json 位于仓库根。');
+  }).finally(function(){ $('#btnManifest').disabled = false; });
+}
+
+/* ---------- 清单渲染 ---------- */
+function renderFiles(){
+  var wrap = $('#fileGroups');
+  wrap.innerHTML = '';
+  var groups = [];
+  state.files.forEach(function(f){
+    if (groups.indexOf(f.group) === -1) groups.push(f.group);
+  });
+  groups.forEach(function(g){
+    var sec = el('section', 'fgroup');
+    var count = state.files.filter(function(f){ return f.group === g; }).length;
+    sec.appendChild(el('div', 'gname', (GROUP_LABELS[g] || g) + ' · ' + count + ' 个文件'));
+    var list = el('div');
+    state.files.forEach(function(f, i){
+      if (f.group !== g) return;
+      var row = el('label', 'frow');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = f.selected;
+      cb.addEventListener('change', function(){ f.selected = cb.checked; refreshCounts(); });
+      row.appendChild(cb);
+      row.appendChild(el('span', 'fpath', f.path));
+      row.appendChild(el('span', 'fsize', fmtB(f.bytes)));
+      list.appendChild(row);
+    });
+    sec.appendChild(list);
+    wrap.appendChild(sec);
+  });
+  refreshCounts();
+  $('#totalCount').textContent = state.files.length;
+  $('#heroFiles').textContent = state.files.length + ' 个文件待发布';
+}
+function refreshCounts(){
+  var sel = state.files.filter(function(f){ return f.selected; });
+  $('#selCount').textContent = sel.length;
+  $('#selBytes').textContent = fmtB(sel.reduce(function(a, f){ return a + (f.bytes || 0); }, 0));
+  var n = state.files.length;
+  $('#btnAll').disabled  = sel.length === n;
+  $('#btnNone').disabled = sel.length === 0;
+  $('#btnPublish').textContent = sel.length
+    ? '创建仓库并上传 ' + sel.length + ' 个文件'
+    : '创建仓库并上传（未勾选文件）';
+  refreshPublishReady();
+}
+function setAll(v){
+  state.files.forEach(function(f){ f.selected = v; });
+  renderFiles();
+}
+function refreshPublishReady(){
+  var ok = state.manifest && state.login && !state.busy &&
+           state.files.some(function(f){ return f.selected; });
+  $('#btnPublish').disabled = !ok;
+}
+
+/* ---------- 第 2 步：令牌 = 登录 ---------- */
+function verifyToken(){
+  var t = $('#tokenInput').value.trim();
+  if (!t){ log('err', '请先粘贴访问令牌——令牌即登录（第 2 步）。'); return; }
+  state.token = t;
+  try {
+    if ($('#rememberToken').checked) localStorage.setItem(TOKEN_KEY, t);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch (e) { /* 浏览器禁用本地存储时静默降级：令牌仅存内存 */ }
+  setStep(2, 'active');
+  $('#btnVerify').disabled = true;
+  log('cmd', 'GET api.github.com/user · Bearer ' + t.slice(0, 7) + '****（其余隐藏）');
+  fetch(GH + '/user', { headers: ghHeaders(), cache: 'no-store' }).then(function(res){
+    if (res.status === 401) throw new Error('令牌无效或已过期（401）');
+    if (res.status === 403) throw new Error('令牌权限不足或触发限流（403）');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }).then(function(u){
+    state.login = u.login;
+    $('#tokenState').textContent = '已登录 @' + u.login + ' · 令牌有效';
+    $('#tokenState').className = 'state ok';
+    setStep(2, 'done');
+    log('ok', '登录成功：@' + u.login + '。令牌仅存于本页内存，不会出现在日志或上传内容中。');
+    refreshPublishReady();
+  }).catch(function(e){
+    setStep(2, 'error');
+    state.login = null;
+    $('#tokenState').textContent = '未登录 · ' + e.message;
+    $('#tokenState').className = 'state err';
+    log('err', '令牌验证失败：' + e.message);
+  }).finally(function(){
+    $('#btnVerify').disabled = false;
+    refreshPublishReady();
+  });
+}
+
+/* ---------- 进度 ---------- */
+function setProgress(d, t){
+  var pct = t ? Math.round(d / t * 100) : 0;
+  $('#pubBar').style.width = pct + '%';
+  $('#pubCount').textContent = d + ' / ' + t;
+  $('#pubPct').textContent = pct + '%';
+}
+
+/* ---------- 上传单文件（远端已有则带 sha 覆盖更新） ---------- */
+function contentUrl(repo, path){
+  return GH + '/repos/' + repo.full_name + '/contents/' +
+         path.split('/').map(encodeURIComponent).join('/');
+}
+function putContent(repo, path, b64, branch, message){
+  var url = contentUrl(repo, path);
+  var body = { message: message, content: b64, branch: branch };
+  function send(){ 
+    return fetch(url, {
+      method: 'PUT',
+      headers: Object.assign(ghHeaders(), { 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body)
+    });
+  }
+  return send().then(function(res){
+    if (res.status === 201) return 'created';
+    if (res.status === 422 || res.status === 409){
+      /* 远端已存在同名文件：读取 sha 后覆盖 */
+      return fetch(url, { headers: ghHeaders() }).then(function(g){
+        if (!g.ok) throw new Error('上传 ' + path + ' 失败 HTTP ' + res.status + '（且无法读取远端 sha）');
+        return g.json();
+      }).then(function(j){
+        body.sha = j.sha;
+        return send().then(function(res2){
+          if (!res2.ok) throw new Error('更新 ' + path + ' 失败 HTTP ' + res2.status);
+          return 'updated';
+        });
+      });
+    }
+    throw new Error('上传 ' + path + ' 失败 HTTP ' + res.status);
+  });
+}
+
+/* ---------- 第 3 步：建仓 + 串行上传 + Topics ---------- */
+function publish(){
+  if (state.busy) return;
+  if (!state.login){ log('err', '请先完成第 2 步：验证令牌并登录。'); return; }
+  var sel = state.files.filter(function(f){ return f.selected; });
+  if (!sel.length){ log('err', '请至少勾选 1 个文件（见发布清单）。'); return; }
+  var name = $('#repoInput').value.trim();
+  if (!/^[A-Za-z0-9_.-]{1,100}$/.test(name)){
+    log('err', '仓库名不合法：仅允许字母、数字、点、下划线、连字符。'); return;
+  }
+  var isPrivate = document.querySelector('input[name="vis"]:checked').value === 'private';
+  var desc = $('#descInput').value.trim() || FALLBACK_DESC;
+
+  state.busy = true;
+  refreshPublishReady();
+  $('#btnVerify').disabled = true;
+  $('#btnManifest').disabled = true;
+  setStep(3, 'active');
+  setStep(4, 'idle');
+  setProgress(0, sel.length);
+  log('cmd', 'POST /user/repos · name=' + name + ' · ' + (isPrivate ? 'private' : 'public'));
+
+  var finish = function(){ 
+    state.busy = false;
+    refreshPublishReady();
+    $('#btnVerify').disabled = false;
+    $('#btnManifest').disabled = false;
+  };
+
+  /* 1) 建仓（422 = 同名已存在 → 复用） */
+  fetch(GH + '/user/repos', {
+    method: 'POST',
+    headers: Object.assign(ghHeaders(), { 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ name: name, description: desc, private: isPrivate,
+                           has_issues: true, has_wiki: true, auto_init: false })
+  }).then(function(res){
+    if (res.status === 201) return res.json().then(function(repo){
+      log('ok', '仓库已创建：' + repo.full_name + '（默认分支 ' + repo.default_branch + '）');
+      return repo;
+    });
+    if (res.status === 422){
+      return fetch(GH + '/repos/' + state.login + '/' + encodeURIComponent(name), { headers: ghHeaders() })
+        .then(function(chk){
+          if (!chk.ok) throw new Error('同名仓库已存在，但当前令牌无权访问它（HTTP ' + chk.status + '）');
+          return chk.json();
+        }).then(function(repo){
+          log('ok', '同名仓库已存在，直接复用：' + repo.full_name);
+          return repo;
+        });
+    }
+    return res.json().catch(function(){ return {}; }).then(function(j){
+      throw new Error('建仓失败 HTTP ' + res.status + (j && j.message ? '：' + j.message : ''));
+    });
+  }).then(function(repo){
+    state.repoInfo = repo;
+    var branch = repo.default_branch || 'main';
+    /* 2) 串行逐个上传 */
+    var i = 0, created = 0, updated = 0;
+    function next(){
+      if (i >= sel.length) return Promise.resolve();
+      var f = sel[i];
+      return fetchFileBytes(f.path).then(function(bytes){
+        var b64 = bytesToBase64(bytes);
+        var msg = 'chore(publish): ' + f.path + '（BasicStack ' + VERSION + '）';
+        return putContent(repo, f.path, b64, branch, msg).then(function(how){
+          if (how === 'created') created++; else updated++;
+          setProgress(++i, sel.length);
+          log('ok', 'PUT ' + f.path + ' · ' + bytes.length.toLocaleString() + ' B · ' + (how === 'created' ? '新建' : '更新（覆盖远端旧文件）'));
+          return new Promise(function(r){ setTimeout(r, 120); }).then(next);
+        });
+      });
+    }
+    return next().then(function(){
+      log('info', '文件上传完成：新建 ' + created + ' · 更新 ' + updated);
+      /* 3) Topics（品牌规范 §8 的 17 个） */
+      var topics = (state.manifest && state.manifest.topics) || FALLBACK_TOPICS;
+      log('cmd', 'PUT /repos/' + repo.full_name + '/topics · ' + topics.length + ' 个');
+      return fetch(GH + '/repos/' + repo.full_name + '/topics', {
+        method: 'PUT',
+        headers: Object.assign(ghHeaders(), { 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ names: topics })
+      }).then(function(tr){
+        if (!tr.ok) throw new Error('写入 Topics 失败 HTTP ' + tr.status);
+        log('ok', 'Topics 已写入：' + topics.join(' '));
+        return repo;
+      });
+    });
+  }).then(function(repo){
+    /* 4) 完成 */
+    setStep(3, 'done');
+    setStep(4, 'done');
+    var url = repo.html_url || ('https://github.com/' + repo.full_name);
+    var clone = 'git clone ' + (repo.clone_url || url + '.git');
+    var box = $('#doneBody');
+    box.innerHTML = '';
+    var p1 = el('div');
+    p1.appendChild(document.createTextNode('仓库地址：'));
+    var a = el('a', null, url); a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    p1.appendChild(a);
+    box.appendChild(p1);
+    var p2 = el('div', 'clone', clone);
+    p2.title = '点击复制克隆命令';
+    p2.addEventListener('click', function(){
+      if (navigator.clipboard) navigator.clipboard.writeText(clone)
+        .then(function(){ log('ok', '克隆命令已复制到剪贴板。'); });
+    });
+    box.appendChild(p2);
+    box.appendChild(el('div', 'hint', '点击克隆命令即可复制。首次启动请先看 README「三步启动」（含外部网络与 MinerU 本地构建）。'));
+    log('ok', '发布完成：' + repo.full_name + ' · ' + sel.length + ' 个文件字节级同步 · 描述与 Topics 已按品牌规范写入。');
+  }).catch(function(e){
+    setStep(3, 'error');
+    log('err', '发布中断：' + e.message);
+    log('info', '已完成的文件保留在远端；修正问题后重新点「创建仓库并上传」，同名文件会带 sha 覆盖更新，不会重复堆积。');
+  }).finally(finish);
+}
+
+/* ---------- 初始化 ---------- */
+function init(){
+  /* file:// 警示 */
+  if (location.protocol === 'file:'){
+    $('#fileWarn').classList.add('show');
+    log('err', '当前为 file:// 协议：浏览器同源策略禁止读取 /repo/。请通过 http://127.0.0.1/publish.html 打开。');
+    setStep(1, 'error');
+    return;
+  }
+  /* 已记住的令牌 */
+  try {
+    var saved = localStorage.getItem(TOKEN_KEY);
+    if (saved){ $('#tokenInput').value = saved; $('#rememberToken').checked = true; }
+  } catch (e) { /* localStorage 不可用时静默降级 */ }
+  /* 兜底描述先填上，清单读取成功后会被覆盖 */
+  $('#descInput').value = FALLBACK_DESC;
+  /* 事件绑定 */
+  $('#btnManifest').addEventListener('click', loadManifest);
+  $('#btnVerify').addEventListener('click', verifyToken);
+  $('#tokenInput').addEventListener('keydown', function(e){ if (e.key === 'Enter') verifyToken(); });
+  $('#btnPublish').addEventListener('click', publish);
+  $('#btnAll').addEventListener('click', function(){ setAll(true); });
+  $('#btnNone').addEventListener('click', function(){ setAll(false); });
+  /* 初始日志 */
+  log('cmd', 'open publish.html · BASE=' + BASE + '（nginx 已把 /repo/ 别名到仓库根）');
+  log('info', '流程：读取清单 → 令牌登录 → 建仓上传（原字节） → 写入 Topics → 克隆即用。');
+  /* 自动读取清单 */
+  loadManifest();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
