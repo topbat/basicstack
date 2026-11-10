@@ -2,7 +2,7 @@
   "Servers": {
     "1": {
       "Name": "basic-postgres",
-      "Group": "basic-service",
+      "Group": "basicstack",
       "Host": "postgres",
       "Port": 5432,
       "MaintenanceDB": "postgres",

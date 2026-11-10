@@ -34,6 +34,7 @@ $singleFiles = @(
     'CHANGELOG.md',
     'LICENSE',
     '.gitignore',
+    '.env.example',
     'milvus/embedEtcd.yaml',
     'pgadmin/servers.json',
     'mineru/Dockerfile'
@@ -139,7 +140,7 @@ if (Test-Path -LiteralPath $changelogPath -PathType Leaf) {
 
 $manifest = [pscustomobject]@{
     manifestVersion = 1
-    name            = 'basic-service'
+    name            = 'basicstack'
     version         = $version
     generatedAt     = (Get-Date).ToUniversalTime().ToString('o')
     files           = @($files)

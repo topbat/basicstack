@@ -10,6 +10,8 @@
 ![services](assets/brand/badge-services.svg)
 ![engine](assets/brand/badge-compose.svg)
 
+**🌐 公网体验站：<https://topbat.github.io/basicstack/> · 仓库：[topbat/basicstack](https://github.com/topbat/basicstack) · 许可：MIT**
+
 </div>
 
 ---
@@ -22,7 +24,7 @@
 - **端口全规划** —— 所有端口已避让常见占用（23306/26379/15432…），容器间统一用服务名互访；
 - **密码全统一** —— 初始密码统一 `admin123`，忘记密码等于没有忘记密码；
 - **管理台全配好** —— 12 个 Web 控制台开箱即用，phpMyAdmin/RedisInsight/pgAdmin/Kibana/Attu/DBGate 已自动注册连接；
-- **数据全落盘** —— 统一落盘 `D:\local\basic-service-data`，备份 = 复制目录；
+- **数据全落盘** —— 统一落盘 `${DATA_ROOT}`（默认 `D:\local\basic-service-data`，`.env` 一改全改），备份 = 复制目录；
 - **最大化复用** —— Langfuse 复用本栈的 PostgreSQL/Redis/ClickHouse/MinIO，Nacos 元数据复用 MySQL，不为单件服务多起一个容器；
 - **脚本工具箱** —— `scripts\*.bat` 覆盖启停/状态/日志/负载/重置，双击即用。
 
@@ -52,11 +54,14 @@
 ### 三步启动
 
 ```bash
-git clone <本仓库> basic-service && cd basic-service
+git clone https://github.com/topbat/basicstack.git && cd basicstack
 
-# ① 本栈为跨项目互联声明了外部网络（esg/qdata），首次使用需先创建（或见下方"单机精简"）
-docker network create esg-uat_esg
-docker network create docker_qdatanet
+# ⓪ （可选）复制 .env.example 为 .env，自定义数据目录/网络名；不创建 .env 则使用默认值
+copy .env.example .env & rem  # Windows；Linux/macOS 用 cp
+
+# ① 需要跨项目互联时，按 .env 中的 ESG_NETWORK / QDATA_NETWORK 创建外部网络（不需要互联见下方"单机精简"）
+docker network create esg-uat_esg     # = ${ESG_NETWORK}
+docker network create docker_qdatanet # = ${QDATA_NETWORK}
 
 # ② 首次构建 MinerU 镜像（官方无 Hub 镜像，本地构建）
 docker compose build mineru
@@ -67,7 +72,7 @@ docker compose up -d
 
 > **单机精简**：不需要与 esg/qData 项目互联时，删除 `docker-compose.yml` 顶部的 `esg`/`qdata` 网络声明、`x-networks-all` 中的引用及各服务的 `networks:` 外部网络项，即可免建外部网络直接 `up`。
 >
-> **换机部署**：编排内数据目录为绝对路径 `D:/local/basic-service-data`，克隆到其他机器请同步修改（首次 `up` 会自动创建目录）。
+> **路径与网络全部变量化**：数据目录、仓库目录、网络名由 `.env` 控制（见 `.env.example`）：`DATA_ROOT`（数据根目录）、`STACK_DIR`（仓库目录，nginx 发布页挂载用）、`NETWORK_NAME`（本栈网络，默认 `basic-net`）、`ESG_NETWORK` / `QDATA_NETWORK`（跨项目网络）。默认值即当前布局，不改 `.env` 也能直接跑；换机部署只需改 `.env`，无需动编排文件。注意 Docker Compose 项目名（`name: basic-service`）与 Docker 卷名（`basic-service_*`）保持原样——改动会重建卷导致 ClickHouse/GitLab 数据丢失。
 
 ### 验证
 
@@ -128,7 +133,7 @@ curl -u elastic:admin123 http://127.0.0.1:9200
 | **Neo4j** | neo4j:2026.08.1-community | `neo4j` | **17474 / 17687** ⚠️ | 7474(Browser) / 7687(Bolt) | `neo4j` / admin123 | `data\neo4j\data`、`data\neo4j\logs` |
 | Langfuse Web | langfuse/langfuse:4 | `langfuse-web` | **3000** | 3000 | `admin@basic.local` / admin123 | 无本地目录 |
 | Langfuse Worker | langfuse/langfuse-worker:4 | `langfuse-worker` | 不对外 | 3030 | — | 同上 |
-| **Nginx** | nginx:stable-alpine（1.31.x stable） | `nginx` | **80** | 80 | 无 | `data\nginx\html`、`data\nginx\logs`；配置 `basic-service\nginx\conf.d` |
+| **Nginx** | nginx:stable-alpine（1.31.x stable） | `nginx` | **80** | 80 | 无 | `data\nginx\html`、`data\nginx\logs`；配置 `nginx\conf.d`（相对仓库根） |
 | **Jenkins** | jenkins/jenkins:lts | `jenkins` | **8180** ⚠️ / 50000 | 8080 / 50000(Agent) | 首次用初始密码解锁（见 §5），之后自建管理员 | `data\jenkins` |
 | **GitLab CE** | gitlab/gitlab-ce:19.3.2-ce.0 | `gitlab` | **8181 / 2222** | 8181 / 22(SSH) | `root` / admin123 | Docker 卷（§7.1，Windows 挂载不兼容） |
 | **RabbitMQ** | rabbitmq:4.3-management（4.3.5） | `rabbitmq` | **25672 / 25673** ⚠️ | 5672(AMQP) / 15672(UI) | `admin` / admin123 | `data\rabbitmq` |
@@ -160,7 +165,7 @@ curl -u elastic:admin123 http://127.0.0.1:9200
 ## 2. 目录结构
 
 ```
-D:\local\basic-service                 # 编排与管理目录
+${STACK_DIR}                           # 编排与管理目录（默认 D:\local\basic-service，.env 可改）
 ├── docker-compose.yml                 # 全部服务的编排定义（含中文注释，共 25 个服务）
 ├── README.md                          # 本文档
 ├── CHANGELOG.md                       # 版本变更日志（Keep a Changelog 格式）
@@ -189,7 +194,7 @@ D:\local\basic-service                 # 编排与管理目录
     ├── overview-status.bat # 生成实时容器状态 JSON（总览页消费）
     └── gen-manifest.ps1    # 发布清单生成器（sync-site.bat 自动调用）
 
-D:\local\basic-service-data            # 全部数据/日志落盘目录
+${DATA_ROOT}                           # 全部数据/日志落盘目录（默认 D:\local\basic-service-data，.env 可改）
 ├── mysql\  redis\  minio\  rustfs\  jenkins\  rabbitmq\
 ├── postgres\18\docker\                # PG18 数据（注意在子目录）
 ├── es\{data,logs}\  milvus\  neo4j\{data,logs}\  nacos\logs\
@@ -200,7 +205,7 @@ D:\local\basic-service-data            # 全部数据/日志落盘目录
 
 ## 3. 网络互通
 
-所有服务接入自定义网络 `basic-net`，容器间使用**服务名**作为主机名：
+所有服务接入自定义网络 `basic-net`（网络名由 `.env` 的 `NETWORK_NAME` 控制，默认 `basic-net`），容器间使用**服务名**作为主机名：
 
 | 容器内访问地址 | 用途 |
 |---|---|
@@ -223,7 +228,7 @@ D:\local\basic-service-data            # 全部数据/日志落盘目录
 ### 3.1 中间件跨项目直连（2026-10 新增）
 
 11 个中间件（mysql / redis / postgres / nacos / minio / rustfs / es / clickhouse / milvus / neo4j / rabbitmq）
-在 `basic-net` 之外，还接入了外部项目网络，其他项目容器**无需改任何配置**即可用容器名直连：
+在 `basic-net` 之外，还接入了外部项目网络（网络名由 `.env` 的 `ESG_NETWORK` / `QDATA_NETWORK` 控制），其他项目容器**无需改任何配置**即可用容器名直连：
 
 | 外部网络（compose 键） | 实际网络名 | 接入的中间件 |
 |---|---|---|
@@ -327,7 +332,7 @@ docker exec -it clickhouse clickhouse-client --user admin --password admin123
 
 ### Nginx（stable）
 - 入口：<http://127.0.0.1:80>（默认欢迎页，站点根目录 `data\nginx\html`）
-- 配置：`basic-service\nginx\conf.d\default.conf`（含 GitLab/Jenkins/Nacos 等反向代理示例），修改后 `docker exec nginx nginx -s reload`
+- 配置：`nginx\conf.d\default.conf`（相对仓库根，含 GitLab/Jenkins/Nacos 等反向代理示例），修改后 `docker exec nginx nginx -s reload`
 - 健康检查：<http://127.0.0.1/healthz>
 
 ### Jenkins（LTS）
@@ -372,14 +377,15 @@ curl -X POST http://127.0.0.1:8900/file_parse -F "files=@demo.pdf" -F "backend=p
 
 ```bash
 # MySQL / PostgreSQL
-docker exec mysql mysqldump -uroot -padmin123 --all-databases > D:\local\basic-service-data\backup-mysql.sql
-docker exec postgres pg_dumpall -U postgres > D:\local\basic-service-data\backup-pg.sql
+docker exec mysql mysqldump -uroot -padmin123 --all-databases > %DATA_ROOT%\backup-mysql.sql
+docker exec postgres pg_dumpall -U postgres > %DATA_ROOT%\backup-pg.sql
 # ClickHouse（Docker 卷）
-docker run --rm -v basic-service_clickhouse_data:/data -v D:\local\basic-service-data:/backup alpine tar czf /backup/backup-clickhouse.tar.gz -C /data .
+docker run --rm -v basic-service_clickhouse_data:/data -v %DATA_ROOT%:/backup alpine tar czf /backup/backup-clickhouse.tar.gz -C /data .
 # GitLab（Docker 卷）
 docker exec gitlab gitlab-backup create
 # 文件型服务（redis/minio/rustfs/es/milvus/neo4j/jenkins/rabbitmq/nginx/mineru）：
-# 先 docker compose stop 对应服务，再复制 D:\local\basic-service-data 下对应子目录
+# 先 docker compose stop 对应服务，再复制 %DATA_ROOT% 下对应子目录
+# （命令中的 %DATA_ROOT% 即 .env 的 DATA_ROOT 数据根目录，cmd 下可先 set DATA_ROOT=D:\local\basic-service-data 再执行）
 ```
 
 ## 7. 已知说明与 FAQ

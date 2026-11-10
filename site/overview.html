@@ -293,7 +293,7 @@ footer.foot{border-top:1px solid var(--border);margin-top:8px;background:rgba(14
     </div>
     <div class="icard">
       <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>数据全落盘</h3>
-      <p>数据 / 日志统一落在 <code>D:\local\basic-service-data</code> 对应子目录，备份 = 先停服再复制目录。例外：<b>ClickHouse / GitLab</b> 因 Windows 目录挂载不兼容，数据存 Docker 卷 <code>basic-service_clickhouse_* / basic-service_gitlab_*</code>。</p>
+      <p>数据 / 日志统一落在 <code>${DATA_ROOT}</code> 对应子目录（默认 <code>D:\local\basic-service-data</code>，可在 <code>.env</code> 自定义），备份 = 先停服再复制目录。例外：<b>ClickHouse / GitLab</b> 因 Windows 目录挂载不兼容，数据存 Docker 卷 <code>basic-service_clickhouse_* / basic-service_gitlab_*</code>。</p>
     </div>
     <div class="icard">
       <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 6 3 12l5 6M16 6l5 6-5 6"/></svg>跨项目互通</h3>
@@ -342,24 +342,24 @@ var SERVICES = [
     net:'basic-net · esg',
     ports:[['23306','3306','MySQL 服务端口']],
     acct:'root / admin123 · 业务账号 nacos / admin123',
-    data:'D:\\local\\basic-service-data\\mysql',
+    data:'${DATA_ROOT}\\mysql',
     cmds:[
       ['重启','docker compose restart mysql'],
       ['日志','docker compose logs -f --tail=200 mysql'],
       ['连接','docker exec -it mysql mysql -uroot -padmin123'],
-      ['备份','docker exec mysql mysqldump -uroot -padmin123 --all-databases > D:\\local\\basic-service-data\\backup-mysql.sql']
+      ['备份','docker exec mysql mysqldump -uroot -padmin123 --all-databases > ${DATA_ROOT}\\backup-mysql.sql']
     ]},
   { k:'postgres', zh:'PostgreSQL 关系数据库', cat:'数据库', ver:'PostgreSQL 18 + pgvector（18.6）', img:'pgvector/pgvector:pg18',
     net:'basic-net · esg · qdata',
     ports:[['15432','5432','PG 端口']],
     acct:'postgres / admin123',
-    data:'D:\\local\\basic-service-data\\postgres\\18\\docker',
+    data:'${DATA_ROOT}\\postgres\\18\\docker',
     note:'PG18 起挂载父目录，实际数据在 postgres\\18\\docker 子目录；内置库 langfuse（供 Langfuse 使用）',
     cmds:[
       ['重启','docker compose restart postgres'],
       ['日志','docker compose logs -f --tail=200 postgres'],
       ['连接','docker exec -it postgres psql -U postgres -d langfuse'],
-      ['备份','docker exec postgres pg_dumpall -U postgres > D:\\local\\basic-service-data\\backup-pg.sql']
+      ['备份','docker exec postgres pg_dumpall -U postgres > ${DATA_ROOT}\\backup-pg.sql']
     ]},
   { k:'clickhouse', zh:'ClickHouse 列式 OLAP', cat:'数据库', ver:'ClickHouse 26.8（26.8.4）', img:'clickhouse/clickhouse-server:26.8',
     net:'basic-net · esg · qdata',
@@ -372,33 +372,33 @@ var SERVICES = [
       ['重启','docker compose restart clickhouse'],
       ['日志','docker compose logs -f --tail=200 clickhouse'],
       ['连接','docker exec -it clickhouse clickhouse-client --user admin --password admin123'],
-      ['备份','docker run --rm -v basic-service_clickhouse_data:/data -v D:\\local\\basic-service-data:/backup alpine tar czf /backup/backup-clickhouse.tar.gz -C /data .']
+      ['备份','docker run --rm -v basic-service_clickhouse_data:/data -v ${DATA_ROOT}:/backup alpine tar czf /backup/backup-clickhouse.tar.gz -C /data .']
     ]},
   { k:'milvus', zh:'Milvus 向量数据库', cat:'数据库', ver:'Milvus 2.6.23', img:'milvusdb/milvus:v2.6.23',
     net:'basic-net · esg · qdata',
     ports:[['19530','19530','gRPC SDK'],['9091','9091','HTTP 健康 / 指标']],
     acct:'默认未开启认证',
-    data:'D:\\local\\basic-service-data\\milvus',
+    data:'${DATA_ROOT}\\milvus',
     note:'内置 etcd + 本地存储（RocksMQ）独立运行，无需外部 etcd / MinIO；SDK 连 127.0.0.1:19530',
     console:{ url:'http://127.0.0.1:8086', label:'Attu :8086' },
     cmds:[
       ['重启','docker compose restart milvus'],
       ['日志','docker compose logs -f --tail=200 milvus'],
       ['健康','curl -f http://127.0.0.1:9091/healthz'],
-      ['备份','停服后复制 D:\\local\\basic-service-data\\milvus']
+      ['备份','停服后复制 ${DATA_ROOT}\\milvus']
     ]},
   { k:'neo4j', zh:'Neo4j 图数据库', cat:'数据库', ver:'Neo4j 2026.08.1 Community', img:'neo4j:2026.08.1-community',
     net:'basic-net · esg',
     ports:[['17474','7474','HTTP Browser'],['17687','7687','Bolt 协议']],
     acct:'neo4j / admin123',
-    data:'D:\\local\\basic-service-data\\neo4j\\data · neo4j\\logs',
+    data:'${DATA_ROOT}\\neo4j\\data · neo4j\\logs',
     note:'程序连接 bolt://127.0.0.1:17687（宿主机 7474/7687 被另一项目占用，故映射 17xxx）',
     console:{ url:'http://127.0.0.1:17474', label:'Browser :17474' },
     cmds:[
       ['重启','docker compose restart neo4j'],
       ['日志','docker compose logs -f --tail=200 neo4j'],
       ['连接','docker exec -it neo4j cypher-shell -u neo4j -p admin123'],
-      ['备份','停服后复制 D:\\local\\basic-service-data\\neo4j']
+      ['备份','停服后复制 ${DATA_ROOT}\\neo4j']
     ]},
 
   /* ---------- 缓存·消息 ---------- */
@@ -406,26 +406,26 @@ var SERVICES = [
     net:'basic-net · esg',
     ports:[['26379','6379','Redis 端口']],
     acct:'密码 admin123（langfuse 使用 1 号库）',
-    data:'D:\\local\\basic-service-data\\redis',
+    data:'${DATA_ROOT}\\redis',
     note:'AOF 持久化已开启；管理端 RedisInsight :5540',
     cmds:[
       ['重启','docker compose restart redis'],
       ['日志','docker compose logs -f --tail=200 redis'],
       ['连接','docker exec -it redis redis-cli -a admin123'],
-      ['备份','停服后复制 D:\\local\\basic-service-data\\redis']
+      ['备份','停服后复制 ${DATA_ROOT}\\redis']
     ]},
   { k:'rabbitmq', zh:'RabbitMQ 消息队列', cat:'缓存·消息', ver:'RabbitMQ 4.3（4.3.5）', img:'rabbitmq:4.3-management',
     net:'basic-net · esg',
     ports:[['25672','5672','AMQP'],['25673','15672','管理 UI']],
     acct:'admin / admin123',
-    data:'D:\\local\\basic-service-data\\rabbitmq',
+    data:'${DATA_ROOT}\\rabbitmq',
     note:'AMQP 连接串 amqp://admin:admin123@127.0.0.1:25672/（容器网络内 rabbitmq:5672）',
     console:{ url:'http://127.0.0.1:25673', label:'管理 UI :25673' },
     cmds:[
       ['重启','docker compose restart rabbitmq'],
       ['日志','docker compose logs -f --tail=200 rabbitmq'],
       ['队列','docker exec rabbitmq rabbitmqctl list_queues'],
-      ['备份','停服后复制 D:\\local\\basic-service-data\\rabbitmq（队列持久化）']
+      ['备份','停服后复制 ${DATA_ROOT}\\rabbitmq（队列持久化）']
     ]},
 
   /* ---------- 注册配置 ---------- */
@@ -433,7 +433,7 @@ var SERVICES = [
     net:'basic-net · esg · qdata',
     ports:[['8848','8848','控制台 / OpenAPI'],['9848','9848','gRPC 客户端（SDK 必须放行）'],['9849','9849','gRPC 服务端']],
     acct:'控制台 / SDK：nacos / admin123（已开启鉴权）',
-    data:'D:\\local\\basic-service-data\\nacos\\logs',
+    data:'${DATA_ROOT}\\nacos\\logs',
     note:'元数据存放在本栈 MySQL（库 nacos）；gRPC 端口规则 = 8848+1000/1001',
     console:{ url:'http://127.0.0.1:8848/nacos', label:'控制台 :8848/nacos' },
     cmds:[
@@ -448,26 +448,26 @@ var SERVICES = [
     net:'basic-net · esg · qdata',
     ports:[['9000','9000','S3 API'],['9001','9001','Web 控制台']],
     acct:'admin / admin123',
-    data:'D:\\local\\basic-service-data\\minio',
+    data:'${DATA_ROOT}\\minio',
     note:'Langfuse / Milvus 等业务使用，容器间 http://minio:9000；langfuse 桶由 minio-init 预创建',
     console:{ url:'http://127.0.0.1:9001', label:'控制台 :9001' },
     cmds:[
       ['重启','docker compose restart minio'],
       ['日志','docker compose logs -f --tail=200 minio'],
       ['健康','curl -f http://127.0.0.1:9000/minio/health/live'],
-      ['备份','停服后复制 D:\\local\\basic-service-data\\minio（含 langfuse 桶）']
+      ['备份','停服后复制 ${DATA_ROOT}\\minio（含 langfuse 桶）']
     ]},
   { k:'rustfs', zh:'RustFS S3 兼容存储（备选）', cat:'存储', ver:'RustFS latest', img:'rustfs/rustfs:latest',
     net:'basic-net · esg · qdata',
     ports:[['9020','9000','S3 API']],
     acct:'AccessKey admin / SecretKey admin123',
-    data:'D:\\local\\basic-service-data\\rustfs',
+    data:'${DATA_ROOT}\\rustfs',
     note:'当前镜像版本未内置可用 Web 控制台，管理请用 mc / aws-cli',
     cmds:[
       ['重启','docker compose restart rustfs'],
       ['日志','docker compose logs -f --tail=200 rustfs'],
       ['连接','mc alias set rustfs http://127.0.0.1:9020 admin admin123'],
-      ['备份','停服后复制 D:\\local\\basic-service-data\\rustfs']
+      ['备份','停服后复制 ${DATA_ROOT}\\rustfs']
     ]},
   { k:'minio-init', zh:'MinIO 初始化（一次性任务）', cat:'存储', ver:'MinIO MC latest', img:'minio/mc:latest',
     net:'basic-net', oneshot:true,
@@ -485,14 +485,14 @@ var SERVICES = [
     net:'basic-net · esg · qdata',
     ports:[['9200','9200','REST API'],['9300','9300','节点通信']],
     acct:'elastic / admin123',
-    data:'D:\\local\\basic-service-data\\es\\data · es\\logs',
+    data:'${DATA_ROOT}\\es\\data · es\\logs',
     note:'单节点 + 安全认证已开启（本地环境关闭 HTTPS）；JVM 堆 512MB',
     console:{ url:'http://127.0.0.1:5601', label:'Kibana :5601' },
     cmds:[
       ['重启','docker compose restart es'],
       ['日志','docker compose logs -f --tail=200 es'],
       ['健康','curl -u elastic:admin123 http://127.0.0.1:9200/_cluster/health'],
-      ['备份','停服后复制 D:\\local\\basic-service-data\\es 整个目录']
+      ['备份','停服后复制 ${DATA_ROOT}\\es 整个目录']
     ]},
   { k:'es-init', zh:'ES 初始化（一次性任务）', cat:'搜索', ver:'curl latest', img:'curlimages/curl:latest',
     net:'basic-net', oneshot:true,
@@ -532,7 +532,7 @@ var SERVICES = [
     net:'basic-net',
     ports:[['8900','8000','API 端口']],
     acct:'无（本地 API 免登录）',
-    data:'D:\\local\\basic-service-data\\mineru\\models（模型缓存约 1.1GB）',
+    data:'${DATA_ROOT}\\mineru\\models（模型缓存约 1.1GB）',
     note:'官方无 Hub 镜像，由 mineru\\Dockerfile 本地构建；模型走 ModelScope 国内源，首次解析较慢属正常',
     console:{ url:'http://127.0.0.1:8900/docs', label:'Swagger /docs' },
     cmds:[
@@ -547,27 +547,27 @@ var SERVICES = [
     net:'basic-net',
     ports:[['80','80','Web 端口']],
     acct:'无（公开访问）',
-    data:'D:\\local\\basic-service-data\\nginx\\html · nginx\\logs',
+    data:'${DATA_ROOT}\\nginx\\html · nginx\\logs',
     note:'站点配置 basic-service\\nginx\\conf.d\\default.conf（含反代示例）；本页即由 nginx 发布于 http://127.0.0.1/overview.html',
     console:{ url:'http://127.0.0.1/', label:'站点入口 :80' },
     cmds:[
       ['重启','docker compose restart nginx'],
       ['重载','docker exec nginx nginx -s reload'],
       ['健康','curl -f http://127.0.0.1/healthz'],
-      ['备份','静态站点直接复制 D:\\local\\basic-service-data\\nginx\\html']
+      ['备份','静态站点直接复制 ${DATA_ROOT}\\nginx\\html']
     ]},
   { k:'jenkins', zh:'Jenkins（CI/CD）', cat:'DevOps', ver:'Jenkins LTS', img:'jenkins/jenkins:lts',
     net:'basic-net',
     ports:[['8180','8080','Web UI'],['50000','50000','Agent / JNLP']],
     acct:'首次用初始密码解锁，之后自建管理员',
-    data:'D:\\local\\basic-service-data\\jenkins（配置 / 任务 / 插件）',
+    data:'${DATA_ROOT}\\jenkins（配置 / 任务 / 插件）',
     note:'初始密码查询：docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword（仅首次存在）',
     console:{ url:'http://127.0.0.1:8180', label:'控制台 :8180' },
     cmds:[
       ['重启','docker compose restart jenkins'],
       ['日志','docker compose logs -f --tail=200 jenkins'],
       ['密码','docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword'],
-      ['备份','停服后复制 D:\\local\\basic-service-data\\jenkins']
+      ['备份','停服后复制 ${DATA_ROOT}\\jenkins']
     ]},
   { k:'gitlab', zh:'GitLab CE（代码仓库）', cat:'DevOps', ver:'GitLab CE 19.3.2', img:'gitlab/gitlab-ce:19.3.2-ce.0',
     net:'basic-net',
@@ -653,7 +653,7 @@ var QUICK = [
   ['停止（保数据）','docker compose stop'],
   ['状态一览','docker compose ps -a'],
   ['跟踪日志','docker compose logs -f --tail=200 <服务名>'],
-  ['备份提示','先 docker compose stop 对应服务，再复制 D:\\local\\basic-service-data 下对应子目录（ClickHouse / GitLab 数据在 Docker 卷，见 README §6）']
+  ['备份提示','先 docker compose stop 对应服务，再复制 ${DATA_ROOT} 下对应子目录（ClickHouse / GitLab 数据在 Docker 卷，见 README §6）']
 ];
 
 /* =========================================================

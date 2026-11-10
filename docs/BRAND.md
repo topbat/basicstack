@@ -12,14 +12,14 @@
 |---|---|---|
 | 中文名 | **基石服务栈** | 全角书写，用于中文文档标题与正式场合 |
 | 英文名 / 显示名 | **BasicStack** | 驼峰拼写（B、S 大写），一个单词，不含空格、连字符或点号 |
-| 默认仓库名 | **basic-service** | 全小写，GitHub / Gitee 等平台仓库名 |
+| 默认仓库名 | **basicstack** | 全小写，GitHub / Gitee 等平台仓库名 |
 | 项目代称（行文内） | 「本栈」 | 非正式行文可用，首次出现仍需用全称 |
 
 书写规则：
 
 - 中英混排时首次出现写全：「基石服务栈 BasicStack」，之后可单独使用任一名称。
 - BasicStack 不得拆写为 Basic Stack、basicstack、Basic-stack；中文不得写作「基石栈」「基础服务栈」。
-- 涉及 Docker Compose 项目名（compose `name:` 字段、数据目录 `basic-service-data`）时保持 `basic-service` 原样，不替换为品牌名。
+- 涉及 Docker Compose 项目名（compose `name:` 字段、Docker 卷名 `basic-service_*`）时保持 `basic-service` 原样，不替换为品牌名；数据目录默认值 `basic-service-data` 属于 `.env` 中 `DATA_ROOT` 的默认值，同样保持原样。
 
 ## 2. 核心文案（逐字使用）
 
@@ -148,7 +148,7 @@ magick -density 192 -background none favicon.svg favicon-64.png && magick favico
 
 | 设置项 | 值 |
 |---|---|
-| Repository name | `basic-service` |
+| Repository name | `basicstack` |
 | Description | 粘贴 §2.2 文本（159 字符） |
 | Website | （部署文档站后填写，暂留空或指向 README 锚点） |
 | Topics | `docker-compose` `self-hosted` `devops` `infrastructure` `mysql` `redis` `postgresql` `elasticsearch` `clickhouse` `milvus` `neo4j` `rabbitmq` `minio` `rustfs` `nacos` `langfuse` `mineru` `vector-database` `llm-observability` `developer-tools` |
