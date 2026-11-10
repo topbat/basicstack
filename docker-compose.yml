@@ -1,0 +1,701 @@
+# =====================================================================================
+# 基石服务栈 BasicStack（basic-service）统一编排文件
+# 位置   : D:\local\basic-service\docker-compose.yml
+# 品牌   : 基石服务栈 BasicStack（见 docs/BRAND.md 与 README.md）
+# 说明   :
+#   1. 所有服务接入同一自定义网络 basic-net，容器之间通过【服务名】互相访问（网络互通）
+#      中间件服务另接入外部项目网络 esg / qdata，其他项目容器可直接用【容器名】访问（详见 README §3）
+#   2. 所有数据/日志持久化保存在宿主机 D:\local\basic-service-data 对应子目录下
+#   3. 所有设置了密码的组件，初始密码统一为 admin123（详见各服务 environment 注释）
+#   4. nacos 元数据直接存放在本编排的 mysql 中（数据库：nacos）
+#   5. langfuse 复用本编排的 postgres / redis / clickhouse / minio（尽最大可能复用）
+#   6. milvus 使用内置 etcd + 本地存储（避免额外引入 etcd/独立存储容器）
+#   7. 每个组件均配套管理端工具（phpMyAdmin/RedisInsight/pgAdmin/Kibana/Attu/DBGate，见文件末尾）
+# 使用   : docker compose up -d        （启动全部，详见 README.md 与 scripts 目录脚本）
+# =====================================================================================
+name: basic-service
+
+# 统一日志策略：防止日志无限膨胀（每个容器最多 50MB x 3 个文件）
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "3"
+
+# 统一网络：所有服务共用，容器间用服务名互访
+networks:
+  basic-net:
+    name: basic-net
+    driver: bridge
+  # ---- 外部项目网络：中间件额外接入，其他项目容器可用【容器名】直连本栈中间件（见 README §3） ----
+  # 注意：external 网络必须已存在（对方项目至少启动过一次）；若对方 docker compose down 删掉了网络，
+  #       本编排 up 前需先恢复（docker network create esg-uat_esg / docker_qdatanet）或临时移除下方引用。
+  esg:
+    name: esg-uat_esg
+    external: true
+  qdata:
+    name: docker_qdatanet
+    external: true
+
+# 中间件全量网络集合（basic-net + esg + qdata）。
+# ⚠️ mysql / redis / rabbitmq / neo4j 四个服务【不接入 qdata】：qData 项目在 docker_qdatanet 上
+#    自带同名服务别名（docker-mysql-1 的别名就是 mysql 等），本栈同名容器若接入会造成该网络
+#    DNS 解析轮询错乱、干扰对方项目，故这四个只接入 basic-net + esg（其余中间件三个网络全接入）。
+x-networks-all: &mw-networks-all
+  basic-net:
+  esg:
+  qdata:
+
+# ClickHouse / GitLab 专用卷（Windows 目录挂载兼容性问题，见各服务注释与 README §7.1）
+volumes:
+  clickhouse_data:
+  clickhouse_logs:
+  gitlab_config:
+  gitlab_data:
+  gitlab_logs:
+
+# Langfuse(v4) 公共环境变量（web 与 worker 共用；复用本编排的 postgres/redis/clickhouse/minio）
+x-langfuse-env: &langfuse-env
+  # ---- 认证/加密（随机生成，首次初始化后请勿修改，否则已登录会话/加密数据失效） ----
+  NEXTAUTH_URL: http://localhost:3000          # 浏览器访问地址
+  NEXTAUTH_SECRET: 8e344f30030d621f8c031f101e7d253cd5076071fe6dec42f3e0214de13b64c1
+  SALT: 23e18c0f0ccb992ce198223e14305248e03a5090b727348dd719c7f973cebdbd
+  ENCRYPTION_KEY: cc7e01014661af7563381dccd57316a9f9a2bc9a96ea197202c9ff4dc7a41bbc
+  TELEMETRY_ENABLED: "false"                   # 关闭遥测上报
+  # ---- PostgreSQL（复用本编排 postgres，库 langfuse 由初始化脚本创建） ----
+  DATABASE_URL: postgresql://postgres:admin123@postgres:5432/langfuse
+  # ---- ClickHouse（复用本编排 clickhouse，账号 admin/admin123） ----
+  CLICKHOUSE_URL: http://clickhouse:8123
+  CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+  CLICKHOUSE_USER: admin
+  CLICKHOUSE_PASSWORD: admin123
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  # ---- Redis（复用本编排 redis，密码 admin123，使用 1 号库） ----
+  REDIS_CONNECTION_STRING: redis://:admin123@redis:6379/1
+  REDIS_TLS_ENABLED: "false"
+  # ---- S3 对象存储（复用本编排 minio，会自动初始化 langfuse 桶） ----
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: admin
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: admin123
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "events/"
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: admin
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: admin123
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_MEDIA_UPLOAD_INTERNAL_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: "media/"
+  # ---- 初始账号/项目（首次启动自动创建：登录 admin@basic.local / admin123） ----
+  LANGFUSE_INIT_ORG_ID: basic-org
+  LANGFUSE_INIT_ORG_NAME: Basic Service
+  LANGFUSE_INIT_PROJECT_ID: basic-project
+  LANGFUSE_INIT_PROJECT_NAME: Basic Project
+  LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-a4319cc54b96853d83883323d3c0863084a10c9c
+  LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-97bb0faaaa7e8a935c8569a25a91410d29247640
+  LANGFUSE_INIT_USER_EMAIL: admin@basic.local
+  LANGFUSE_INIT_USER_NAME: Admin
+  LANGFUSE_INIT_USER_PASSWORD: admin123        # 初始登录密码（统一 admin123）
+  # ---- 限制 Node 内存，适配本机 8GB 的 Docker 虚拟机 ----
+  NODE_OPTIONS: --max-old-space-size=768
+  # ---- 强制绑定 0.0.0.0（容器默认 HOSTNAME 会让服务只绑 eth0，导致本机健康检查失败） ----
+  HOSTNAME: 0.0.0.0
+
+services:
+  # ============================== MySQL 8.4（关系数据库） ==============================
+  mysql:
+    image: mysql:8.4
+    container_name: mysql
+    restart: unless-stopped
+    ports:
+      - "23306:3306"           # 【MySQL 服务端口】宿主机 23306 -> 容器 3306（宿主机 3306 被另一项目占用，见 README §7.4）
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: admin123    # root 账号密码
+      MYSQL_DATABASE: nacos            # 初始数据库（供 nacos 使用）
+      MYSQL_USER: nacos                # nacos 专用账号
+      MYSQL_PASSWORD: admin123         # nacos 账号密码
+    command:
+      - --character-set-server=utf8mb4     # 字符集
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - D:/local/basic-service-data/mysql:/var/lib/mysql                    # 【数据目录】
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro                         # 【首次初始化 SQL：建 nacos 库/账号/表结构】
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-padmin123"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    networks:
+      basic-net:
+      esg:
+      # 不接入 qdata：qData 项目在该网络自带同名 mysql 服务，见文件顶部 x-networks-all 注释
+    logging: *default-logging
+
+  # ============================== Redis 8.8（缓存/KV） ==============================
+  redis:
+    image: redis:8.8-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "26379:6379"           # 【Redis 端口】宿主机 26379 -> 容器 6379，密码 admin123（宿主机 6379 被另一项目占用，langfuse 使用 1 号库）
+    command: ["redis-server", "--requirepass", "admin123", "--appendonly", "yes"]  # 密码 + AOF 持久化
+    volumes:
+      - D:/local/basic-service-data/redis:/data                                # 【数据目录】
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a admin123 --no-auth-warning ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      basic-net:
+      esg:
+      # 不接入 qdata：qData 项目在该网络自带同名 redis 服务，见文件顶部 x-networks-all 注释
+    logging: *default-logging
+
+  # ====================== PostgreSQL 18（关系数据库，带 pgvector 扩展） ======================
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "15432:5432"           # 【PostgreSQL 端口】宿主机 15432（宿主机 5432 已被本地原生 PG 占用）-> 容器 5432
+    environment:
+      TZ: Asia/Shanghai
+      POSTGRES_PASSWORD: admin123      # postgres 超级用户密码（langfuse 连接串使用）
+    volumes:
+      - D:/local/basic-service-data/postgres:/var/lib/postgresql             # 【数据目录】PG18 起挂载父目录，数据在 postgres/18/docker 子目录
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro                        # 【首次初始化 SQL：创建 langfuse 库】
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d langfuse"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: *mw-networks-all
+    logging: *default-logging
+
+  # ============================== Nacos 2.5（注册中心/配置中心） ==============================
+  nacos:
+    image: nacos/nacos-server:v2.5.4
+    container_name: nacos
+    restart: unless-stopped
+    depends_on:                      # 必须等 mysql 完全就绪后再启动
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8848:8848"            # 【控制台/OpenAPI HTTP 端口】http://localhost:8848/nacos  账号 nacos/admin123
+      - "9848:9848"            # 【gRPC 客户端端口】= 8848+1000，SDK 客户端必须放行
+      - "9849:9849"            # 【gRPC 服务端端口】= 8848+1001，集群/服务端同步
+    environment:
+      TZ: Asia/Shanghai
+      MODE: standalone                     # 单机模式
+      SPRING_DATASOURCE_PLATFORM: mysql    # 元数据存储改为 MySQL（使用本编排的 mysql）
+      MYSQL_SERVICE_HOST: mysql            # 容器网络内通过服务名访问
+      MYSQL_SERVICE_PORT: "3306"
+      MYSQL_SERVICE_DB_NAME: nacos
+      MYSQL_SERVICE_USER: nacos
+      MYSQL_SERVICE_PASSWORD: admin123
+      MYSQL_SERVICE_DB_PARAM: characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+      NACOS_AUTH_ENABLE: "true"            # 开启鉴权（客户端需带 nacos/admin123）
+      NACOS_AUTH_TOKEN: YWRtaW4xMjNhZG1pbjEyM2FkbWluMTIzYWRtaW4xMjNhZG1pbjEyM2FkbWluMTIzYWRtaW4xMjNhZG1pbjEyMw==   # JWT 密钥(Base64, 原文=8个admin123)
+      NACOS_AUTH_IDENTITY_KEY: serverIdentity
+      NACOS_AUTH_IDENTITY_VALUE: admin123
+      JVM_XMS: 256m                        # 限制 JVM 内存（本机内存有限）
+      JVM_XMX: 512m
+      JVM_XMN: 128m
+    volumes:
+      - D:/local/basic-service-data/nacos/logs:/home/nacos/logs              # 【日志目录】
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8848/nacos/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    networks: *mw-networks-all
+    logging: *default-logging
+
+  # ============================== MinIO（S3 对象存储） ==============================
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"            # 【S3 API 端口】（langfuse/milvus 等业务使用，容器间 http://minio:9000）
+      - "9001:9001"            # 【Web 控制台】http://localhost:9001  账号 admin/admin123
+    environment:
+      MINIO_ROOT_USER: admin           # 管理员账号
+      MINIO_ROOT_PASSWORD: admin123    # 管理员密码
+    command: server /data --console-address ":9001"
+    volumes:
+      - D:/local/basic-service-data/minio:/data                                # 【数据目录】
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: *mw-networks-all
+    logging: *default-logging
+
+  # ---- 一次性任务：为 langfuse 预创建 MinIO 桶（执行完自动退出，属正常现象） ----
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      echo 'MinIO 初始化：创建 langfuse 桶 ...';
+      mc alias set local http://minio:9000 admin admin123;
+      mc mb --ignore-existing local/langfuse;
+      echo 'MinIO 初始化完成（langfuse 桶已就绪）';
+      "
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== RustFS（S3 兼容对象存储，备选） ==============================
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs
+    restart: unless-stopped
+    ports:
+      - "9020:9000"            # 【RustFS S3 API 端口】http://localhost:9020  AccessKey/SecretKey: admin/admin123
+    environment:
+      RUSTFS_ACCESS_KEY: admin         # 访问密钥 AccessKey（mc/aws-cli 连接时使用）
+      RUSTFS_SECRET_KEY: admin123      # 访问密钥 SecretKey
+      RUSTFS_CONSOLE_ENABLE: "true"    # 控制台开关（注：当前镜像版本未内置可用 Web 控制台，管理请用 mc/aws-cli）
+    volumes:
+      - D:/local/basic-service-data/rustfs:/data                               # 【数据目录】
+    networks: *mw-networks-all
+    logging: *default-logging
+
+  # ============================== Elasticsearch 9.2（搜索引擎） ==============================
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.3
+    container_name: es
+    restart: unless-stopped
+    ports:
+      - "9200:9200"            # 【REST API 端口】http://localhost:9200  账号 elastic/admin123
+      - "9300:9300"            # 【节点通信 TCP 端口】
+    environment:
+      - discovery.type=single-node              # 单节点模式
+      - xpack.security.enabled=true             # 开启安全认证
+      - xpack.security.http.ssl.enabled=false   # 本地环境关闭 HTTPS
+      - ELASTIC_PASSWORD=admin123               # elastic 账号密码
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m          # 限制 JVM 堆内存（本机内存有限）
+      - TZ=Asia/Shanghai
+    volumes:
+      - D:/local/basic-service-data/es/data:/usr/share/elasticsearch/data      # 【数据目录】
+      - D:/local/basic-service-data/es/logs:/usr/share/elasticsearch/logs      # 【日志目录】
+    healthcheck:
+      test: ["CMD-SHELL", "curl -u elastic:admin123 -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+    networks: *mw-networks-all
+    logging: *default-logging
+
+  # ---- 一次性任务：为 Kibana 创建专用服务账号（kibana_server，ES9 禁止 Kibana 用 elastic 超级用户） ----
+  es-init:
+    image: curlimages/curl:latest
+    container_name: es-init
+    restart: "no"
+    depends_on:
+      es:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      echo 'ES 初始化：创建 kibana_server 服务账号(密码 admin123)...';
+      curl -s -u elastic:admin123 -X POST http://es:9200/_security/user/kibana_server -H 'Content-Type: application/json' -d '{\"password\":\"admin123\",\"roles\":[\"kibana_system\"]}';
+      echo ' ES 初始化完成';
+      "
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== ClickHouse 26.8（列式 OLAP） ==============================
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.8
+    container_name: clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"            # 【HTTP 接口端口】http://localhost:8123 （JDBC/REST/langfuse 迁移）
+      - "9090:9000"            # 【Native TCP 端口】容器内 9000，宿主机映射为 9090（避免与 MinIO 9000 冲突）
+    environment:
+      TZ: Asia/Shanghai
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: admin                   # 访问账号（langfuse 使用）
+      CLICKHOUSE_PASSWORD: admin123            # 访问密码
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"  # 授予账号管理权限（可建库建表）
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      # 注意：ClickHouse 存储引擎依赖 rename 等原子文件操作，在 Windows 目录挂载(drvfs)上会报
+      # "Permission denied"，因此 data/logs 使用 Docker 命名卷（其余服务均正常使用 D:/local/basic-service-data）
+      - clickhouse_data:/var/lib/clickhouse        # 【数据目录(Docker卷)】
+      - clickhouse_logs:/var/log/clickhouse-server # 【日志目录(Docker卷)，docker logs clickhouse 亦可查看】
+      - ./clickhouse/config.d/zz-memory-limit.xml:/etc/clickhouse-server/config.d/zz-memory-limit.xml:ro   # 【内存限制配置】(单文件挂载，避免覆盖镜像自带配置)
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --user admin --password admin123 --receive_timeout 3 --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    networks: *mw-networks-all
+    logging: *default-logging
+
+  # ============ Milvus 2.6（向量数据库，内置 etcd + 本地存储，独立运行） ============
+  milvus:
+    image: milvusdb/milvus:v2.6.23
+    container_name: milvus
+    restart: unless-stopped
+    command: ["milvus", "run", "standalone"]
+    ports:
+      - "19530:19530"          # 【gRPC SDK 端口】pymilvus/java sdk 连接  localhost:19530
+      - "9091:9091"            # 【HTTP 指标/健康检查端口】http://localhost:9091/healthz
+    environment:
+      DEPLOY_MODE: STANDALONE                      # 2.6 起必须显式指定单机部署模式（默认分布式会拒绝内置 etcd）
+      ETCD_USE_EMBED: "true"                       # 使用内置 etcd（不额外起 etcd 容器）
+      ETCD_CONFIG_PATH: /milvus/configs/embedEtcd.yaml
+      ETCD_DATA_DIR: /var/lib/milvus/etcd          # 内置 etcd 数据目录（已持久化）
+      COMMON_STORAGETYPE: local                    # 使用本地存储（RocksMQ），不依赖外部 MinIO
+    volumes:
+      - ./milvus/embedEtcd.yaml:/milvus/configs/embedEtcd.yaml:ro             # 【内置 etcd 配置】
+      - D:/local/basic-service-data/milvus:/var/lib/milvus                    # 【数据目录】
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 120s
+    networks: *mw-networks-all
+    logging: *default-logging
+
+  # ============================== Neo4j 2026.08（图数据库） ==============================
+  neo4j:
+    image: neo4j:2026.08.1-community
+    container_name: neo4j
+    restart: unless-stopped
+    ports:
+      - "17474:7474"           # 【HTTP Browser 端口】http://127.0.0.1:17474  账号 neo4j/admin123（宿主机 7474/7687 被另一项目占用）
+      - "17687:7687"           # 【Bolt 协议端口】程序连接  bolt://127.0.0.1:17687
+    environment:
+      NEO4J_AUTH: neo4j/admin123                              # 账号 neo4j，密码 admin123
+      NEO4J_server_memory_heap_max__size: 256m                # 限制堆内存（本机内存有限）
+      NEO4J_server_memory_pagecache_size: 256m                # 限制页缓存
+      TZ: Asia/Shanghai
+    volumes:
+      - D:/local/basic-service-data/neo4j/data:/data                           # 【数据目录】
+      - D:/local/basic-service-data/neo4j/logs:/logs                           # 【日志目录】
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 -u neo4j -p admin123 'RETURN 1'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+    networks:
+      basic-net:
+      esg:
+      # 不接入 qdata：qData 项目在该网络自带同名 neo4j 服务，见文件顶部 x-networks-all 注释
+    logging: *default-logging
+
+  # ============================== Langfuse 4（LLM 可观测平台，web + worker） ==============================
+  langfuse-web:
+    image: docker.langfuse.com/langfuse/langfuse:4
+    container_name: langfuse-web
+    restart: unless-stopped
+    depends_on:                      # 复用 postgres/redis/clickhouse/minio，需等它们就绪
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "3000:3000"            # 【Langfuse Web 控制台】http://localhost:3000  登录 admin@basic.local / admin123
+    environment:
+      <<: *langfuse-env
+      PORT: "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/public/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 10s
+      retries: 12
+      start_period: 180s
+    networks: [basic-net]
+    logging: *default-logging
+
+  langfuse-worker:
+    image: docker.langfuse.com/langfuse/langfuse-worker:4
+    container_name: langfuse-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      <<: *langfuse-env
+      PORT: "3030"             # worker 内部端口（不对外暴露）
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3030/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 10s
+      retries: 12
+      start_period: 180s
+    networks: [basic-net]
+    logging: *default-logging
+
+  # #####################################################################################
+  # ############################  管理端工具（Web 控制台）  ##############################
+  # #####################################################################################
+
+  # ============================== phpMyAdmin（MySQL 管理端） ==============================
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8081:80"              # 【phpMyAdmin】http://localhost:8081  账号 root / admin123（服务器已自动指向 mysql）
+    environment:
+      PMA_HOST: mysql          # 容器网络内直连 mysql 服务
+      PMA_PORT: "3306"
+      UPLOAD_LIMIT: 512M       # SQL 导入文件大小上限
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== RedisInsight（Redis 官方管理端） ==============================
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "5540:5540"            # 【RedisInsight】http://localhost:5540  已自动注册本编排 redis（密码 admin123）
+    environment:
+      RI_REDIS_HOST: redis     # 自动注册的 Redis 主机（容器网络内服务名）
+      RI_REDIS_PORT: "6379"
+      RI_REDIS_PASSWORD: admin123
+      RI_REDIS_NAME: redis-local
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== pgAdmin 4（PostgreSQL 管理端） ==============================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:80"              # 【pgAdmin】http://localhost:8082  登录 admin@basic.local / admin123（已自动注册 postgres 连接）
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@basic-service.com   # pgAdmin 登录账号（新版 pgAdmin 不接受 .local 等保留域名）
+      PGADMIN_DEFAULT_PASSWORD: admin123         # pgAdmin 登录密码
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro   # 自动注册 postgres 连接（Host=postgres, 账号 postgres/admin123）
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== Kibana（Elasticsearch 官方管理端） ==============================
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.2.3
+    container_name: kibana
+    restart: unless-stopped
+    depends_on:
+      es:
+        condition: service_healthy
+      es-init:
+        condition: service_completed_successfully
+    ports:
+      - "5601:5601"            # 【Kibana】http://localhost:5601  账号 elastic / admin123（首次启动约需 2-5 分钟）
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es:9200     # 容器网络内连 es
+      - ELASTICSEARCH_USERNAME=kibana_server   # Kibana 专用服务账号（由 es-init 创建，ES9 禁用 elastic 超级用户）
+      - ELASTICSEARCH_PASSWORD=admin123
+      - I18N_LOCALE=zh-CN      # 界面显示中文
+      - TZ=Asia/Shanghai
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== Attu（Milvus 官方管理端） ==============================
+  attu:
+    image: zilliz/attu:v3.0
+    container_name: attu
+    restart: unless-stopped
+    depends_on:
+      milvus:
+        condition: service_healthy
+    ports:
+      - "8086:3000"            # 【Attu】http://localhost:8086  连接地址已预填 milvus:19530，直接点连接即可
+    environment:
+      MILVUS_URL: milvus:19530   # 容器网络内连 milvus
+      ATTU_AUTH_MODE: "none"     # 本地开发：关闭 Attu v3 的登录页（如需登录改回 local，首次访问可创建管理员）
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== DBGate（ClickHouse 等 Web 数据库客户端） ==============================
+  dbgate:
+    image: dbgate/dbgate:7.2.6-alpine
+    container_name: dbgate
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    ports:
+      - "8085:3000"            # 【DBGate】http://localhost:8085  登录 admin / admin123（已预置 ClickHouse 连接）
+    environment:
+      LOGIN_USER: admin                                # DBGate Web 登录账号
+      LOGIN_PASSWORD: admin123                         # DBGate Web 登录密码
+      CONNECTION_1_NAME: ClickHouse                    # 预置连接：ClickHouse
+      CONNECTION_1_ENGINE: clickhouse@dbgate-plugin-clickhouse
+      CONNECTION_1_SERVER: clickhouse
+      CONNECTION_1_USER: admin
+      CONNECTION_1_PASSWORD: admin123
+    networks: [basic-net]
+    logging: *default-logging
+
+  # #####################################################################################
+  # ############################  DevOps 与扩展服务  ####################################
+  # #####################################################################################
+
+  # ============================== Nginx（Web 入口/反向代理） ==============================
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"                # 【Nginx Web 端口】http://localhost:80  (反向代理示例见 nginx/conf.d/default.conf)
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro                                   # 【站点配置】改完执行 docker exec nginx nginx -s reload
+      - D:/local/basic-service-data/nginx/html:/usr/share/nginx/html:ro      # 【静态站点根目录】
+      - D:/local/basic-service-data/nginx/logs:/var/log/nginx                 # 【日志目录】
+      - D:/local/basic-service:/srv/basic-service:ro                          # 【仓库只读挂载】发布页经 http://localhost/repo/... 同源读取源文件（见 nginx/conf.d/default.conf）
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz || exit 1"]   # 用 127.0.0.1（容器内 localhost 可能解析 ::1 导致误报）
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== Jenkins（CI/CD，LTS 版） ==============================
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    restart: unless-stopped
+    ports:
+      - "8180:8080"            # 【Jenkins Web 端口】http://localhost:8180  (宿主机 8080 已被占用故映射 8180)
+      - "50000:50000"          # 【Agent/JNLP 端口】构建节点接入使用
+    environment:
+      TZ: Asia/Shanghai
+      JAVA_OPTS: -Xmx768m -Djava.awt.headless=true   # 限制 JVM 内存
+    volumes:
+      - D:/local/basic-service-data/jenkins:/var/jenkins_home                  # 【数据目录】(配置/任务/插件)
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== GitLab CE（代码仓库，内存已调优） ==============================
+  gitlab:
+    image: gitlab/gitlab-ce:19.3.2-ce.0
+    container_name: gitlab
+    restart: unless-stopped
+    hostname: gitlab
+    ports:
+      - "8181:8181"            # 【GitLab Web 端口】http://localhost:8181  账号 root / admin123（首次启动约 5-10 分钟）
+      - "2222:22"              # 【SSH 克隆端口】git clone ssh://git@localhost:2222/...
+    environment:
+      TZ: Asia/Shanghai
+      GITLAB_ROOT_PASSWORD: admin123           # 初始 root 密码（仅首次初始化生效）
+      GITLAB_ROOT_EMAIL: admin@basic-service.com
+      GITLAB_TIMEZONE: Asia/Shanghai
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:8181'
+        gitlab_rails['initial_root_password'] = 'admin123'   # 首次初始化的 root 密码（仅初始化时生效，之后请登录修改）
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        puma['worker_processes'] = 0           # 单进程模式（省内存，本机资源有限）
+        sidekiq['max_concurrency'] = 8
+        prometheus_monitoring['enable'] = false
+        gitlab_kas['enable'] = false           # 关闭 KAS(Agent server)
+        registry['enable'] = false             # 关闭内置镜像仓库
+        gitlab_rails['smtp_enable'] = false
+    volumes:
+      # 注意：GitLab 在 Windows 目录挂载(drvfs)上 reconfigure 的文件属主操作极慢且无法完成（实测反复退出），
+      # 因此 config/data/logs 使用 Docker 命名卷（与 ClickHouse 同理，见 README §7.1）
+      - gitlab_config:/etc/gitlab       # 【配置目录(Docker卷)】
+      - gitlab_data:/var/opt/gitlab     # 【数据目录(Docker卷)】(仓库/数据库)
+      - gitlab_logs:/var/log/gitlab     # 【日志目录(Docker卷)】
+    shm_size: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8181/-/readiness || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 900s
+    networks: [basic-net]
+    logging: *default-logging
+
+  # ============================== RabbitMQ（消息队列，含管理 UI） ==============================
+  rabbitmq:
+    image: rabbitmq:4.3-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    hostname: rabbitmq
+    ports:
+      - "25672:5672"           # 【AMQP 端口】宿主机 25672 -> 容器 5672（宿主机 5672/15672 被另一项目占用）
+      - "25673:15672"          # 【管理 UI】http://127.0.0.1:25673  账号 admin / admin123
+    environment:
+      TZ: Asia/Shanghai
+      RABBITMQ_DEFAULT_USER: admin             # 管理账号
+      RABBITMQ_DEFAULT_PASS: admin123          # 管理密码
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - D:/local/basic-service-data/rabbitmq:/var/lib/rabbitmq                 # 【数据目录】(队列持久化)
+    networks:
+      basic-net:
+      esg:
+      # 不接入 qdata：qData 项目在该网络自带同名 rabbitmq 服务，见文件顶部 x-networks-all 注释
+    logging: *default-logging
+
+  # ============================== MinerU（PDF/文档解析 API，CPU 版） ==============================
+  # 镜像由 ./mineru/Dockerfile 本地构建（官方无 Hub 镜像）：docker compose build mineru
+  mineru:
+    build: ./mineru
+    image: mineru-local:3.4.5
+    container_name: mineru
+    restart: unless-stopped
+    ports:
+      - "8900:8000"            # 【MinerU API】http://localhost:8900  接口文档 /docs  解析接口 /file_parse
+    environment:
+      TZ: Asia/Shanghai
+      MINERU_MODEL_SOURCE: modelscope  # 模型从 ModelScope 国内源下载（首次解析自动下载约 1-2GB 到模型卷）
+      MINERU_DEVICE_MODE: cpu          # CPU 推理（有 NVIDIA GPU 可改 gpu 并按官方文档调整）
+    volumes:
+      - D:/local/basic-service-data/mineru/models:/root/.cache                 # 【模型缓存目录】(避免重复下载)
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)\""]   # slim 镜像无 curl，用 python 探测
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks: [basic-net]
+    logging: *default-logging
