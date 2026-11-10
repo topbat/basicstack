@@ -1,0 +1,63 @@
+# =====================================================================================
+# 基石服务栈 BasicStack · GitHub Pages 部署工作流（Pages）
+#
+# 触发方式：
+#   - 推送到 main 分支自动触发；
+#   - 也可在 Actions 页签手动触发（workflow_dispatch）。
+#
+# 部署内容：
+#   site/ 目录（总览页 overview.html、发布页 publish.html 等），
+#   并把 assets/ 品牌资产复制进 site/assets/ 一并发布，
+#   最终部署到 https://<user>.github.io/basic-service/。
+#
+# 已知限制（重要）：
+#   发布页 publish.html 依赖本地 nginx 的 /repo/ 路由同源读取 site-manifest.json
+#   与仓库源文件；GitHub Pages 上不存在 /repo/ 路由，发布控制台的清单读取与
+#   逐文件上传无法工作，页面只会展示内置兜底文案。完整发布功能请使用本地
+#   nginx（http://127.0.0.1/publish.html，先运行 scripts\sync-site.bat 同步）。
+#   Pages 站点上主要展示的是总览页 overview.html。
+# =====================================================================================
+name: Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+# 串行部署：同一时刻只允许一个 Pages 部署，排队但不取消进行中的部署
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy site to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # ---- 预备站点目录：把品牌资产并入 site/assets，随站点一起发布 ----
+      - name: Stage site with brand assets
+        run: |
+          mkdir -p site/assets
+          cp -r assets/. site/assets/
+
+      # ---- 打包并上传 Pages 构件 ----
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      # ---- 部署到 GitHub Pages ----
+      - id: deployment
+        name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
